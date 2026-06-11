@@ -597,7 +597,7 @@ function doLoadFromSheets(){
   // Gunakan Google Visualization API - tidak ada CORS issue
   const SHEET_ID="11GtpPld5iVVoylh1FVKZxoKw0KebAK-TuG3kZS6NlgQ";
   const SHEET_NAME="SPMB_Data";
-  const cbName="_gvizCb_"+Date.now();
+  const cbName="spmbCb"+Date.now();
   window[cbName]=function(resp){
     delete window[cbName];
     const el=document.getElementById("_gviz_script");
