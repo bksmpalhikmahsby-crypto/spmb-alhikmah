@@ -339,6 +339,7 @@ function bRekap(){
         <button id="B-csv" class="bs" style="font-size:12px;padding:7px 12px"><i class="ti ti-file-spreadsheet"></i>Export CSV/Excel</button>
         <button id="B-print" style="background:#1a3c2e;color:#c8a84b;border:none;border-radius:9px;padding:7px 14px;font-weight:700;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:6px"><i class="ti ti-printer"></i>Cetak PDF Landscape</button>
         <button id="B-reset" style="background:#fee2e2;color:#dc2626;border:1.5px solid #fca5a5;border-radius:9px;padding:7px 14px;font-weight:700;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:6px"><i class="ti ti-trash-x"></i>Reset Semua Data</button>
+        <button id="B-sync" onclick="doSyncAll()" style="background:#f0fdf4;color:#059669;border:1.5px solid #6ee7b7;border-radius:9px;padding:7px 14px;font-weight:700;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:6px"><i class="ti ti-cloud-upload"></i>Sync ke Google Sheets</button>
       </div>
     </div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:12px">
@@ -587,6 +588,39 @@ function liveAk(){const b=F.ak(gv("A-bindo")),m=F.ak(gv("A-mat")),i=F.ak(gv("A-i
 function liveAq(){sh("R-quran",`<span style="font-size:22px;font-weight:800;color:#d97706">${F.qr(gv("Q-baca"),gv("Q-hafalan"))}</span>`);}
 function doLogin(){const nm=gv("L-name"),pw=gv("L-pass")||"";if(!nm||nm==="— Pilih Nama —"){le="Pilih nama terlebih dahulu!";render();return;}const cfg=USERS[lr];if(cfg.nopass){cu={role:lr,name:nm};le="";pwShow=false;render();return;}if(pw===cfg.members[nm]){cu={role:lr,name:nm};le="";pwShow=false;render();}else{le="Password salah! Coba lagi.";render();}}
 async function sendGS(row){try{await fetch(GS,{method:"POST",mode:"no-cors",headers:{"Content-Type":"application/json"},body:JSON.stringify(row)})}catch(e){}}
+async function doSyncAll(){
+  const mg=getMerged();
+  if(!mg.length){showToast("Tidak ada data untuk disync!","error");return;}
+  if(!confirm(`Sync ${mg.length} siswa ke Google Sheets?\nProses ini akan mengirim semua data ke server.`))return;
+  showToast("Memulai sync... harap tunggu","info");
+  let ok=0,fail=0;
+  for(const p of mg){
+    try{
+      // Kirim identitas
+      if(p.nama){
+        await sendGS({type:"identitas",noPendaftaran:p.noPendaftaran,nama:p.nama,panggil:p.panggil||"",jk:p.jk||"",tgl:p.tgl||"",status:p.status||"",sekolah:p.sekolah||"",tahun:p.tahun||"",inputIdBy:p.inputIdBy||"Admin"});
+        await new Promise(r=>setTimeout(r,300));
+      }
+      // Kirim psikotest
+      if(p.cfit||p.s2){
+        await sendGS({type:"psikotest",noPendaftaran:p.noPendaftaran,cfit:p.cfit||"",cfitHasil:p.cfitHasil||"",s2:p.s2||"",s3:p.s3||"",s5:p.s5||"",s6:p.s6||"",emosi:p.emosi||"",sosial:p.sosial||"",adaptasi:p.adaptasi||"",skalaKecerdasan:p.skalaKecerdasan||"",skalaPribadi:p.skalaPribadi||"",skalaPsiko:p.skalaPsiko||"",rekomendasi:p.rekomendasi||"",inputPsBy:p.inputPsBy||"Admin"});
+        await new Promise(r=>setTimeout(r,300));
+      }
+      // Kirim akademis
+      if(p.bindoBenar||p.bindoNilai){
+        await sendGS({type:"akademis",noPendaftaran:p.noPendaftaran,bindoBenar:p.bindoBenar||"",matBenar:p.matBenar||"",ipaBenar:p.ipaBenar||"",bingBenar:p.bingBenar||"",bindoNilai:p.bindoNilai||"",matNilai:p.matNilai||"",ipaNilai:p.ipaNilai||"",bingNilai:p.bingNilai||"",rataAkademis:p.rataAkademis||"",inputAkBy:p.inputAkBy||"Admin"});
+        await new Promise(r=>setTimeout(r,300));
+      }
+      // Kirim alquran
+      if(p.nilaiBaca||p.nilaiHafalan){
+        await sendGS({type:"alquran",noPendaftaran:p.noPendaftaran,nilaiBaca:p.nilaiBaca||"",nilaiHafalan:p.nilaiHafalan||"",totalQuran:p.totalQuran||"",ketQuran:p.ketQuran||"",inputAqBy:p.inputAqBy||"Admin"});
+        await new Promise(r=>setTimeout(r,300));
+      }
+      ok++;
+    }catch(e){fail++;}
+  }
+  showToast(`✓ Sync selesai! ${ok} siswa berhasil${fail>0?" ("+fail+" gagal)":""}!`,"success");
+}
 function saveLocal(){localStorage.setItem("spmb_v17",JSON.stringify(raw))}
 function deleteSiswa(key){
   if(!confirm(`Hapus semua data siswa No. Pendaftaran "${key}"?\n\nTindakan ini tidak dapat dibatalkan.`)) return;
