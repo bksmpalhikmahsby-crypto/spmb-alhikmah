@@ -340,6 +340,7 @@ function bRekap(){
         <button id="B-print" style="background:#1a3c2e;color:#c8a84b;border:none;border-radius:9px;padding:7px 14px;font-weight:700;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:6px"><i class="ti ti-printer"></i>Cetak PDF Landscape</button>
         <button id="B-reset" style="background:#fee2e2;color:#dc2626;border:1.5px solid #fca5a5;border-radius:9px;padding:7px 14px;font-weight:700;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:6px"><i class="ti ti-trash-x"></i>Reset Semua Data</button>
         <button id="B-sync" style="background:#f0fdf4;color:#059669;border:1.5px solid #6ee7b7;border-radius:9px;padding:7px 14px;font-weight:700;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:6px"><i class="ti ti-cloud-upload"></i>Sync ke Google Sheets</button>
+        <button id="B-load" style="background:#eff6ff;color:#1a56db;border:1.5px solid #93c5fd;border-radius:9px;padding:7px 14px;font-weight:700;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:6px"><i class="ti ti-cloud-download"></i>Refresh dari Sheets</button>
       </div>
     </div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:12px">
@@ -582,6 +583,7 @@ function bindAll(){
   document.querySelectorAll(".B-del").forEach(b=>b.onclick=e=>{e.stopPropagation();deleteSiswa(b.dataset.key);});
   if($("B-reset"))$("B-reset").onclick=resetSemua;
   if($("B-sync"))$("B-sync").onclick=doSyncAll;
+  if($("B-load"))$("B-load").onclick=doLoadFromSheets;
 }
 
 function livePs(){const c=gv("P-cfit"),s2=gv("P-s2"),s3=gv("P-s3"),s5=gv("P-s5"),s6=gv("P-s6"),e=gv("P-emosi"),s=gv("P-sosial"),a=gv("P-adaptasi");sh("R-cfit",bdg(F.cfit(c)));sh("R-pem",bdg(F.pem(s2)));sh("R-pen",bdg(F.pen(s3)));const lm=F.lm(s5,s6);sh("R-lm",`<span style="font-size:15px;font-weight:800;color:#111827;margin-right:6px">${lm.val}</span>${bdg(lm.lbl)}`);const tin=F.tin(s2,s3,s5,s6);sh("R-tin",`<span style="font-size:15px;font-weight:800;color:#111827;margin-right:6px">${tin.tot}</span>${bdg(tin.lbl)}`);sh("R-sk",`<span style="font-size:18px;font-weight:800;color:#1a56db">${tin.sk}</span>`);const pri=F.pri(e,s,a);sh("R-pri",`<span style="font-size:18px;font-weight:800;color:#be185d">${pri}</span>`);const psiko=F.psi(tin.sk,pri);st("R-psiko",psiko);sh("R-rek",bdg(F.rek(psiko)));}
@@ -589,6 +591,30 @@ function liveAk(){const b=F.ak(gv("A-bindo")),m=F.ak(gv("A-mat")),i=F.ak(gv("A-i
 function liveAq(){sh("R-quran",`<span style="font-size:22px;font-weight:800;color:#d97706">${F.qr(gv("Q-baca"),gv("Q-hafalan"))}</span>`);}
 function doLogin(){const nm=gv("L-name"),pw=gv("L-pass")||"";if(!nm||nm==="— Pilih Nama —"){le="Pilih nama terlebih dahulu!";render();return;}const cfg=USERS[lr];if(cfg.nopass){cu={role:lr,name:nm};le="";pwShow=false;render();return;}if(pw===cfg.members[nm]){cu={role:lr,name:nm};le="";pwShow=false;render();}else{le="Password salah! Coba lagi.";render();}}
 async function sendGS(row){try{await fetch(GS,{method:"POST",mode:"no-cors",headers:{"Content-Type":"application/json"},body:JSON.stringify(row)})}catch(e){}}
+async function doLoadFromSheets(){
+  if(!confirm("Refresh data dari Google Sheets?\nData lokal akan diganti dengan data dari server."))return;
+  showToast("Mengambil data dari server...","info");
+  try{
+    const res=await fetch(GS+"?action=getAll",{method:"GET",mode:"cors"});
+    const text=await res.text();
+    let data;
+    try{data=JSON.parse(text);}catch(e){
+      showToast("Gagal membaca data dari server!","error");return;
+    }
+    if(data.status==="ok"&&Array.isArray(data.rows)&&data.rows.length>0){
+      raw=data.rows;
+      saveLocal();
+      showToast("✓ Data berhasil direfresh! "+raw.length+" siswa dimuat.","success");
+      render();
+    }else if(data.status==="ok"&&data.rows&&data.rows.length===0){
+      showToast("Data di server kosong.","warn");
+    }else{
+      showToast("Gagal: "+(data.message||"Unknown error"),"error");
+    }
+  }catch(e){
+    showToast("Gagal koneksi ke server!","error");
+  }
+}
 async function doSyncAll(){
   const mg=getMerged();
   if(!mg.length){showToast("Tidak ada data untuk disync!","error");return;}
