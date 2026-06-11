@@ -594,72 +594,61 @@ async function sendGS(row){try{await fetch(GS,{method:"POST",mode:"no-cors",head
 function doLoadFromSheets(){
   if(!confirm("Refresh data dari Google Sheets?\nData lokal akan diganti dengan data dari server."))return;
   showToast("Mengambil data dari server...","info");
-  // Gunakan Google Visualization API - tidak ada CORS issue
   const SHEET_ID="11GtpPld5iVVoylh1FVKZxoKw0KebAK-TuG3kZS6NlgQ";
   const SHEET_NAME="SPMB_Data";
-  const cbName="spmbCb"+Date.now();
-  window[cbName]=function(resp){
-    delete window[cbName];
-    const el=document.getElementById("_gviz_script");
-    if(el)el.remove();
-    try{
-      const tbl=resp.table;
-      if(!tbl||!tbl.rows||tbl.rows.length===0){
-        showToast("Data di server kosong.","warn");
-        return;
+  // Gunakan CSV export - paling sederhana, tidak ada CORS
+  const url="https://docs.google.com/spreadsheets/d/"+SHEET_ID+"/export?format=csv&sheet="+encodeURIComponent(SHEET_NAME);
+  fetch(url)
+  .then(r=>{
+    if(!r.ok)throw new Error("HTTP "+r.status);
+    return r.text();
+  })
+  .then(csv=>{
+    const lines=csv.trim().split("\n");
+    if(lines.length<=1){showToast("Data di server kosong.","warn");return;}
+    // Skip header (baris pertama)
+    const newRaw=[];
+    for(let i=1;i<lines.length;i++){
+      // Parse CSV dengan benar (handle koma dalam quotes)
+      const cols=[];
+      let cur="",inQ=false;
+      for(let c=0;c<lines[i].length;c++){
+        const ch=lines[i][c];
+        if(ch==='"'){inQ=!inQ;}
+        else if(ch===','&&!inQ){cols.push(cur.trim());cur="";}
+        else{cur+=ch;}
       }
-      // Map kolom: A=noPendaftaran, B=nama, C=panggil, D=jk, E=tgl, F=status
-      // G=sekolah, H=tahun, I=cfit, J=cfitHasil, K=s2, L=s3, M=s5, N=s6
-      // O=logmatTotal, P=logmatSkala, Q=tintumTotal, R=tintumLabel, S=skalaKecerdasan
-      // T=emosi, U=sosial, V=adaptasi, W=skalaPribadi, X=skalaPsiko, Y=rekomendasi
-      // Z=bindoBenar, AA=matBenar, AB=ipaBenar, AC=bingBenar
-      // AD=bindoNilai, AE=matNilai, AF=ipaNilai, AG=bingNilai, AH=rataAkademis (tapi di sheet index 33)
-      // Ambil nilai dari kolom
-      const gv=(row,i)=>{
-        if(!row.c||!row.c[i]||row.c[i].v===null||row.c[i].v===undefined)return"";
-        return String(row.c[i].v);
-      };
-      const newRaw=[];
-      for(const row of tbl.rows){
-        const nop=gv(row,0);
-        if(!nop||nop==="0")continue;
-        newRaw.push({
-          noPendaftaran:nop, nama:gv(row,1), panggil:gv(row,2),
-          jk:gv(row,3), tgl:gv(row,4), status:gv(row,5),
-          sekolah:gv(row,6), tahun:gv(row,7),
-          cfit:gv(row,8), cfitHasil:gv(row,9),
-          s2:gv(row,10), s3:gv(row,11), s5:gv(row,12), s6:gv(row,13),
-          logmatTotal:gv(row,14), logmatSkala:gv(row,15),
-          tintumTotal:gv(row,16), tintumLabel:gv(row,17),
-          skalaKecerdasan:gv(row,18),
-          emosi:gv(row,19), sosial:gv(row,20), adaptasi:gv(row,21),
-          skalaPribadi:gv(row,22), skalaPsiko:gv(row,23), rekomendasi:gv(row,24),
-          bindoBenar:gv(row,25), matBenar:gv(row,26), ipaBenar:gv(row,27), bingBenar:gv(row,28),
-          bindoNilai:gv(row,29), matNilai:gv(row,30), ipaNilai:gv(row,31), bingNilai:gv(row,32),
-          rataAkademis:gv(row,33),
-          nilaiBaca:gv(row,34), nilaiHafalan:gv(row,35), totalQuran:gv(row,36), ketQuran:gv(row,37),
-          inputIdBy:gv(row,38), inputPsBy:gv(row,39), inputAkBy:gv(row,40), inputAqBy:gv(row,41),
-          type:"merged"
-        });
-      }
-      if(newRaw.length===0){showToast("Data di server kosong.","warn");return;}
-      raw=newRaw;
-      saveLocal();
-      showToast("✓ Data berhasil direfresh! "+raw.length+" siswa dimuat.","success");
-      render();
-    }catch(e){
-      showToast("Gagal membaca data: "+e.message,"error");
+      cols.push(cur.trim());
+      const nop=cols[0]||"";
+      if(!nop||nop==="0"||nop==="No. Pendaftaran")continue;
+      newRaw.push({
+        noPendaftaran:nop, nama:cols[1]||"", panggil:cols[2]||"",
+        jk:cols[3]||"", tgl:cols[4]||"", status:cols[5]||"",
+        sekolah:cols[6]||"", tahun:cols[7]||"",
+        cfit:cols[8]||"", cfitHasil:cols[9]||"",
+        s2:cols[10]||"", s3:cols[11]||"", s5:cols[12]||"", s6:cols[13]||"",
+        logmatTotal:cols[14]||"", logmatSkala:cols[15]||"",
+        tintumTotal:cols[16]||"", tintumLabel:cols[17]||"",
+        skalaKecerdasan:cols[18]||"",
+        emosi:cols[19]||"", sosial:cols[20]||"", adaptasi:cols[21]||"",
+        skalaPribadi:cols[22]||"", skalaPsiko:cols[23]||"", rekomendasi:cols[24]||"",
+        bindoBenar:cols[25]||"", matBenar:cols[26]||"", ipaBenar:cols[27]||"", bingBenar:cols[28]||"",
+        bindoNilai:cols[29]||"", matNilai:cols[30]||"", ipaNilai:cols[31]||"", bingNilai:cols[32]||"",
+        rataAkademis:cols[33]||"",
+        nilaiBaca:cols[34]||"", nilaiHafalan:cols[35]||"", totalQuran:cols[36]||"", ketQuran:cols[37]||"",
+        inputIdBy:cols[38]||"", inputPsBy:cols[39]||"", inputAkBy:cols[40]||"", inputAqBy:cols[41]||"",
+        type:"merged"
+      });
     }
-  };
-  const s=document.createElement("script");
-  s.id="_gviz_script";
-  s.src="https://docs.google.com/spreadsheets/d/"+SHEET_ID+"/gviz/tq?tqx=out:json&sheet="+encodeURIComponent(SHEET_NAME)+"&tq=select%20*&callback="+cbName;
-  s.onerror=function(){
-    showToast("Gagal koneksi ke Google Sheets!","error");
-    delete window[cbName];
-    s.remove();
-  };
-  document.body.appendChild(s);
+    if(newRaw.length===0){showToast("Data di server kosong.","warn");return;}
+    raw=newRaw;
+    saveLocal();
+    showToast("✓ Data berhasil direfresh! "+raw.length+" siswa dimuat.","success");
+    render();
+  })
+  .catch(e=>{
+    showToast("Gagal mengambil data: "+e.message,"error");
+  });
 }
 async function doSyncAll(){
   const mg=getMerged();
