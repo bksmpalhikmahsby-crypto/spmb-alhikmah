@@ -667,52 +667,63 @@ function doImportData(){
 function doLoadFromSheets(){
   if(!confirm("Refresh data dari Google Sheets?\nData lokal akan diganti dengan data dari server."))return;
   showToast("Mengambil data dari server...","info");
-  const SHEET_ID="11GtpPld5iVVoylh1FVKZxoKw0KebAK-TuG3kZS6NlgQ";
-  const SHEET_NAME="SPMB_Data";
-  // Gunakan CSV export - paling sederhana, tidak ada CORS
-  const url="https://docs.google.com/spreadsheets/d/"+SHEET_ID+"/export?format=csv&sheet="+encodeURIComponent(SHEET_NAME);
-  fetch(url)
+  const SHEETDB_URL="https://sheetdb.io/api/v1/u2niwlkcs78yq";
+  fetch(SHEETDB_URL+"?sheet=SPMB_Data&limit=500")
   .then(r=>{
     if(!r.ok)throw new Error("HTTP "+r.status);
-    return r.text();
+    return r.json();
   })
-  .then(csv=>{
-    const lines=csv.trim().split("\n");
-    if(lines.length<=1){showToast("Data di server kosong.","warn");return;}
-    // Skip header (baris pertama)
-    const newRaw=[];
-    for(let i=1;i<lines.length;i++){
-      // Parse CSV dengan benar (handle koma dalam quotes)
-      const cols=[];
-      let cur="",inQ=false;
-      for(let c=0;c<lines[i].length;c++){
-        const ch=lines[i][c];
-        if(ch==='"'){inQ=!inQ;}
-        else if(ch===','&&!inQ){cols.push(cur.trim());cur="";}
-        else{cur+=ch;}
-      }
-      cols.push(cur.trim());
-      const nop=cols[0]||"";
-      if(!nop||nop==="0"||nop==="No. Pendaftaran")continue;
-      newRaw.push({
-        noPendaftaran:nop, nama:cols[1]||"", panggil:cols[2]||"",
-        jk:cols[3]||"", tgl:cols[4]||"", status:cols[5]||"",
-        sekolah:cols[6]||"", tahun:cols[7]||"",
-        cfit:cols[8]||"", cfitHasil:cols[9]||"",
-        s2:cols[10]||"", s3:cols[11]||"", s5:cols[12]||"", s6:cols[13]||"",
-        logmatTotal:cols[14]||"", logmatSkala:cols[15]||"",
-        tintumTotal:cols[16]||"", tintumLabel:cols[17]||"",
-        skalaKecerdasan:cols[18]||"",
-        emosi:cols[19]||"", sosial:cols[20]||"", adaptasi:cols[21]||"",
-        skalaPribadi:cols[22]||"", skalaPsiko:cols[23]||"", rekomendasi:cols[24]||"",
-        bindoBenar:cols[25]||"", matBenar:cols[26]||"", ipaBenar:cols[27]||"", bingBenar:cols[28]||"",
-        bindoNilai:cols[29]||"", matNilai:cols[30]||"", ipaNilai:cols[31]||"", bingNilai:cols[32]||"",
-        rataAkademis:cols[33]||"",
-        nilaiBaca:cols[34]||"", nilaiHafalan:cols[35]||"", totalQuran:cols[36]||"", ketQuran:cols[37]||"",
-        inputIdBy:cols[38]||"", inputPsBy:cols[39]||"", inputAkBy:cols[40]||"", inputAqBy:cols[41]||"",
-        type:"merged"
-      });
+  .then(rows=>{
+    if(!Array.isArray(rows)||rows.length===0){
+      showToast("Data di server kosong.","warn");return;
     }
+    const newRaw=rows
+      .filter(r=>r["No. Pendaftaran"]&&String(r["No. Pendaftaran"]).trim()!=="")
+      .map(r=>({
+        noPendaftaran : String(r["No. Pendaftaran"]||""),
+        nama          : String(r["Nama Siswa"]||""),
+        panggil       : String(r["Nama Panggilan"]||""),
+        jk            : String(r["JK"]||""),
+        tgl           : String(r["Tgl Test"]||""),
+        status        : String(r["Status"]||""),
+        sekolah       : String(r["Sekolah Asal"]||""),
+        tahun         : String(r["Tahun"]||""),
+        cfit          : String(r["CFIT Raw"]||""),
+        cfitHasil     : String(r["Kap. Kecerdasan"]||""),
+        s2            : String(r["S2"]||""),
+        s3            : String(r["S3"]||""),
+        s5            : String(r["S5"]||""),
+        s6            : String(r["S6"]||""),
+        logmatTotal   : String(r["Logmat Total"]||""),
+        logmatSkala   : String(r["Logmat Skala"]||""),
+        tintumTotal   : String(r["Tintum Total"]||""),
+        tintumLabel   : String(r["Tintum Label"]||""),
+        skalaKecerdasan:String(r["Skala Kecerdasan"]||""),
+        emosi         : String(r["Emosi"]||""),
+        sosial        : String(r["Sosial"]||""),
+        adaptasi      : String(r["Adaptasi"]||""),
+        skalaPribadi  : String(r["Skala Pribadi"]||""),
+        skalaPsiko    : String(r["Skala Psiko"]||""),
+        rekomendasi   : String(r["Rekomendasi"]||""),
+        bindoBenar    : String(r["B.Indo Benar"]||""),
+        matBenar      : String(r["Mat Benar"]||""),
+        ipaBenar      : String(r["IPA Benar"]||""),
+        bingBenar     : String(r["B.Ing Benar"]||""),
+        bindoNilai    : String(r["B.Indo Nilai"]||""),
+        matNilai      : String(r["Mat Nilai"]||""),
+        ipaNilai      : String(r["IPA Nilai"]||""),
+        bingNilai     : String(r["B.Ing Nilai"]||""),
+        rataAkademis  : String(r["Rata Akademis"]||""),
+        nilaiBaca     : String(r["Nilai Baca"]||""),
+        nilaiHafalan  : String(r["Nilai Hafalan"]||""),
+        totalQuran    : String(r["Total Quran"]||""),
+        ketQuran      : String(r["Ket Quran"]||""),
+        inputIdBy     : String(r["Input ID By"]||""),
+        inputPsBy     : String(r["Input Ps By"]||""),
+        inputAkBy     : String(r["Input Ak By"]||""),
+        inputAqBy     : String(r["Input Aq By"]||""),
+        type          : "merged"
+      }));
     if(newRaw.length===0){showToast("Data di server kosong.","warn");return;}
     raw=newRaw;
     saveLocal();
