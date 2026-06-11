@@ -722,6 +722,7 @@ function doLoadFromSheets(){
         inputPsBy     : String(r["Input Psiko Oleh"]||""),
         inputAkBy     : String(r["Input Akademis Oleh"]||""),
         inputAqBy     : String(r["Input AlQuran Oleh"]||""),
+        terakhirUpdate: String(r["Terakhir Update"]||""),
         type          : "merged"
       }));
     if(newRaw.length===0){showToast("Data di server kosong.","warn");return;}
