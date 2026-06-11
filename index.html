@@ -537,7 +537,7 @@ function inlineEdit(key, field, curVal){
 }
 function render(){
   let h=hdr();
-  if(toast){const[bg,cl,br,ic]={success:"#f0fdf4|#065f46|#6ee7b7|ti-circle-check",error:"#fef2f2|#991b1b|#fca5a5|ti-alert-circle",warn:"#fffbeb|#92400e|#fcd34d|ti-alert-triangle"}[toast.type].split("|");h+=`<div class="toast" style="background:${bg};color:${cl};border:1.5px solid ${br}"><i class="ti ${ic}" style="font-size:16px"></i>${toast.msg}</div>`;}
+  if(toast){const toastMap={success:"#f0fdf4|#065f46|#6ee7b7|ti-circle-check",error:"#fef2f2|#991b1b|#fca5a5|ti-alert-circle",warn:"#fffbeb|#92400e|#fcd34d|ti-alert-triangle",info:"#eff6ff|#1e40af|#93c5fd|ti-info-circle"};const[bg,cl,br,ic]=(toastMap[toast.type]||toastMap.success).split("|");h+=`<div class="toast" style="background:${bg};color:${cl};border:1.5px solid ${br}"><i class="ti ${ic}" style="font-size:16px"></i>${toast.msg}</div>`;}
   if(!cu)h+=bLogin();
   else if(cu.role==="panitia")h+=bIdentitas();
   else if(cu.role==="psikotest")h+=bPsikotest();
