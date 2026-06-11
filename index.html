@@ -643,13 +643,13 @@ function doPrint(){
 
   const COLS=[
     {label:"No. Pendaftaran", w:"52px"},
-    {label:"Nama Siswa",      w:"108px"},
-    {label:"Nama Panggilan",  w:"70px"},
+    {label:"Nama Siswa",      w:"90px"},
+    {label:"Nama Panggilan",  w:"60px"},
     {label:"JK",              w:"22px"},
     {label:"Tgl Test",        w:"60px"},
     {label:"Status",          w:"50px"},
-    {label:"Sekolah Asal",    w:"96px"},
-    {label:"Kap. Kecerdasan", w:"78px", group:"psiko"},
+    {label:"Sekolah Asal",    w:"80px"},
+    {label:"Kap. Kecerdasan", w:"68px", group:"psiko"},
     {label:"Sk. Psiko",       w:"44px", group:"psiko"},
     {label:"Rek.",            w:"34px", group:"psiko"},
     {label:"B.Indo",          w:"36px", group:"akademis"},
@@ -660,7 +660,7 @@ function doPrint(){
     {label:"Baca",            w:"36px", group:"quran"},
     {label:"Hafalan",         w:"40px", group:"quran"},
     {label:"Total",           w:"36px", group:"quran"},
-    {label:"Keterangan",      w:"80px", group:"quran"},
+    {label:"Keterangan",      w:"65px", group:"quran"},
   ];
 
   const GRP={
@@ -669,7 +669,7 @@ function doPrint(){
     quran:    {label:"AL QURAN",  color:"#b45309", bg:"#fff8e1", cols:4},
   };
 
-  const thBase="border:1px solid #b0bec5;padding:3px 4px;font-size:7.5pt;font-weight:700;text-align:center;vertical-align:middle;white-space:nowrap";
+  const thBase="border:1px solid #b0bec5;padding:2px 3px;font-size:6pt;font-weight:700;text-align:center;vertical-align:middle;white-space:nowrap";
 
   let grpRow="";
   COLS.filter(c=>!c.group).forEach(c=>{
@@ -685,7 +685,7 @@ function doPrint(){
     subRow+=`<th style="${thBase};background:${g.bg};color:${g.color};width:${c.w}">${c.label}</th>`;
   });
 
-  const tdBase="border:1px solid #e0e0e0;padding:3px 4px;font-size:7.5pt;vertical-align:middle";
+  const tdBase="border:1px solid #e0e0e0;padding:2px 3px;font-size:6pt;vertical-align:middle";
   const rows=fl.map((p,ri)=>{
     const bg=ri%2===0?"#ffffff":"#f8fafc";
     const tglStr=p.tgl?(()=>{try{return new Date(p.tgl).toLocaleDateString("id-ID",{day:"2-digit",month:"2-digit",year:"numeric"});}catch(e){return p.tgl;}})():"";
@@ -699,7 +699,7 @@ function doPrint(){
       <td style="${tdBase};text-align:center">${tglStr}</td>
       <td style="${tdBase};text-align:center;${statusColor}">${p.status||""}</td>
       <td style="${tdBase}">${p.sekolah||""}</td>
-      <td style="${tdBase};background:#e8f4fd;color:#0369a1;font-size:7pt;text-align:center">${p.cfitHasil||""}</td>
+      <td style="${tdBase};background:#e8f4fd;color:#0369a1;font-size:5.5pt;text-align:center">${p.cfitHasil||""}</td>
       <td style="${tdBase};text-align:center;font-weight:800;color:#1a56db">${p.skalaPsiko||""}</td>
       <td style="${tdBase};text-align:center;${rekColor}">${p.rekomendasi||""}</td>
       <td style="${tdBase};text-align:center;color:#5b21b6">${p.bindoNilai||""}</td>
@@ -710,7 +710,7 @@ function doPrint(){
       <td style="${tdBase};text-align:center;color:#92400e">${p.nilaiBaca||""}</td>
       <td style="${tdBase};text-align:center;color:#92400e">${p.nilaiHafalan||""}</td>
       <td style="${tdBase};text-align:center;font-weight:800;color:#b45309;background:#fffbeb">${p.totalQuran||""}</td>
-      <td style="${tdBase};font-size:7pt;color:#64748b">${p.ketQuran||""}</td>
+      <td style="${tdBase};font-size:5.5pt;color:#64748b">${p.ketQuran||""}</td>
     </tr>`;
   }).join("");
 
@@ -738,9 +738,9 @@ body{font-family:Arial,sans-serif;background:#fff;padding:5mm}
 .stat{display:flex;gap:8px;margin-bottom:7px;flex-wrap:wrap;align-items:center}
 .stat-box{border:1px solid #e2e8f0;border-radius:5px;padding:3px 10px;font-size:8pt;color:#374151}
 .stat-box b{color:#1a3c2e}
-table{width:100%;border-collapse:collapse;table-layout:fixed}
+table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:6pt}
 th,td{overflow:hidden;text-overflow:ellipsis}
-.footer{margin-top:7px;font-size:7pt;color:#94a3b8;text-align:right}
+.footer{margin-top:7px;font-size:6pt;color:#94a3b8;text-align:right}
 </style>
 </head><body>
 <div class="kop">
