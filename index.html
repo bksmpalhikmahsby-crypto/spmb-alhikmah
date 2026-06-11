@@ -339,7 +339,7 @@ function bRekap(){
         <button id="B-csv" class="bs" style="font-size:12px;padding:7px 12px"><i class="ti ti-file-spreadsheet"></i>Export CSV/Excel</button>
         <button id="B-print" style="background:#1a3c2e;color:#c8a84b;border:none;border-radius:9px;padding:7px 14px;font-weight:700;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:6px"><i class="ti ti-printer"></i>Cetak PDF Landscape</button>
         <button id="B-reset" style="background:#fee2e2;color:#dc2626;border:1.5px solid #fca5a5;border-radius:9px;padding:7px 14px;font-weight:700;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:6px"><i class="ti ti-trash-x"></i>Reset Semua Data</button>
-        <button id="B-sync" onclick="doSyncAll()" style="background:#f0fdf4;color:#059669;border:1.5px solid #6ee7b7;border-radius:9px;padding:7px 14px;font-weight:700;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:6px"><i class="ti ti-cloud-upload"></i>Sync ke Google Sheets</button>
+        <button id="B-sync" style="background:#f0fdf4;color:#059669;border:1.5px solid #6ee7b7;border-radius:9px;padding:7px 14px;font-weight:700;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:6px"><i class="ti ti-cloud-upload"></i>Sync ke Google Sheets</button>
       </div>
     </div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:12px">
@@ -581,6 +581,7 @@ function bindAll(){
   document.querySelectorAll(".B-det").forEach(b=>b.onclick=()=>{const k=b.dataset.key;od.add(k);render();setTimeout(()=>{const d=document.querySelector(`.DT[data-key="${k}"]`);if(d)d.scrollIntoView({behavior:"smooth",block:"start"})},100)});
   document.querySelectorAll(".B-del").forEach(b=>b.onclick=e=>{e.stopPropagation();deleteSiswa(b.dataset.key);});
   if($("B-reset"))$("B-reset").onclick=resetSemua;
+  if($("B-sync"))$("B-sync").onclick=doSyncAll;
 }
 
 function livePs(){const c=gv("P-cfit"),s2=gv("P-s2"),s3=gv("P-s3"),s5=gv("P-s5"),s6=gv("P-s6"),e=gv("P-emosi"),s=gv("P-sosial"),a=gv("P-adaptasi");sh("R-cfit",bdg(F.cfit(c)));sh("R-pem",bdg(F.pem(s2)));sh("R-pen",bdg(F.pen(s3)));const lm=F.lm(s5,s6);sh("R-lm",`<span style="font-size:15px;font-weight:800;color:#111827;margin-right:6px">${lm.val}</span>${bdg(lm.lbl)}`);const tin=F.tin(s2,s3,s5,s6);sh("R-tin",`<span style="font-size:15px;font-weight:800;color:#111827;margin-right:6px">${tin.tot}</span>${bdg(tin.lbl)}`);sh("R-sk",`<span style="font-size:18px;font-weight:800;color:#1a56db">${tin.sk}</span>`);const pri=F.pri(e,s,a);sh("R-pri",`<span style="font-size:18px;font-weight:800;color:#be185d">${pri}</span>`);const psiko=F.psi(tin.sk,pri);st("R-psiko",psiko);sh("R-rek",bdg(F.rek(psiko)));}
