@@ -100,7 +100,7 @@ const F={
   cfit:v=>{const n=+v;if(!v||isNaN(n))return"—";if(n<=69)return"Mentally Defective";if(n<=79)return"Borderline";if(n<=89)return"Low Average";if(n<=109)return"Average";if(n<=119)return"High Average";if(n<=139)return"Superior";if(n<=169)return"Very Superior";return"Genius"},
   pem:v=>{const n=+v;if(!v||isNaN(n))return"—";if(n>22)return"Diatas rata-rata";if(n>20)return"Rata-rata atas";if(n>13)return"Rata-rata";if(n>9)return"Rata-rata bawah";return"Dibawah rata-rata"},
   pen:v=>{const n=+v;if(!v||isNaN(n))return"—";if(n>39)return"Diatas rata-rata";if(n>35)return"Rata-rata atas";if(n>26)return"Rata-rata";if(n>20)return"Rata-rata bawah";return"Dibawah rata-rata"},
-  lm:(a,b)=>{if(!a||!b)return{val:"—",lbl:"—"};const t=(+a)+(+b);return{val:t,lbl:t>14?"Diatas rata-rata":t>11?"Rata-rata atas":t>7?"Rata-rata":t>4?"Rata-rata bawah":"Dibawah rata-rata"}},
+  lm:(a,b)=>{if(!a||!b)return{val:"—",lbl:"—"};const t=((+a)+(+b))/2;return{val:t,lbl:t>14?"Diatas rata-rata":t>11?"Rata-rata atas":t>7?"Rata-rata":t>4?"Rata-rata bawah":"Dibawah rata-rata"}},
   tin:(s2,s3,s5,s6)=>{if(!s2||!s3||!s5||!s6)return{tot:"—",lbl:"—",sk:"—"};const t=(+s2)+(+s3)+(+s5)+(+s6);return{tot:t,lbl:t>88?"Diatas rata-rata":t>80?"Rata-rata atas":t>56?"Rata-rata":t>41?"Rata-rata bawah":"Dibawah rata-rata",sk:t>80?4:t>56?3:t>41?2:1}},
   pri:(e,s,a)=>{if(!e||!s||!a)return"—";return(((+e)+(+s)+(+a))/3).toFixed(2)},
   psi:(k,p)=>{if(!k||!p||k==="—"||p==="—")return"—";return((2*(+k)+(+p))/3).toFixed(3)},
