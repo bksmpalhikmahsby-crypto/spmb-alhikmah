@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SPMB SMP Al Hikmah Surabaya</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 *{box-sizing:border-box;margin:0;padding:0}
@@ -225,6 +226,8 @@ function bIdentitas(){
     </div>
     <div style="display:flex;justify-content:flex-end;margin-top:14px;padding-top:12px;border-top:1px solid #f1f5f9">
       <button id="B-saveId" class="bg_" ${saving?"disabled":""}>${saving?`<i class="ti ti-loader" style="animation:spin 1s linear infinite"></i>Menyimpan...`:`<i class="ti ti-device-floppy"></i>Simpan Identitas`}</button>
+    <button onclick="document.getElementById('I-import-file').click()" style="background:#fdf4ff;color:#7c3aed;border:1.5px solid #d8b4fe;border-radius:9px;padding:10px 18px;font-weight:700;font-size:13px;cursor:pointer;display:inline-flex;align-items:center;gap:7px;margin-left:8px"><i class="ti ti-file-import"></i>Import Data Awal (Excel)</button>
+    <input type="file" id="I-import-file" accept=".xlsx,.xls,.csv" style="display:none" onchange="doImportAwal(this)">
     </div>
   </div>`;}
 
@@ -787,6 +790,109 @@ function resetSemua(){
   render();
 }
 function showToast(msg,type="success"){toast={msg,type};render();setTimeout(()=>{toast=null;render()},4000)}
+function doImportAwal(input){
+  const file=input.files[0];
+  if(!file){return;}
+  input.value="";
+  // Cek apakah file CSV atau Excel
+  const isCSV=file.name.toLowerCase().endsWith('.csv');
+  if(isCSV){
+    // Baca sebagai CSV
+    const reader=new FileReader();
+    reader.onload=function(e){
+      try{
+        processImportAwalCSV(e.target.result);
+      }catch(err){showToast("Gagal import: "+err.message,"error");}
+    };
+    reader.readAsText(file,"UTF-8");
+  } else {
+    // Baca sebagai Excel menggunakan SheetJS
+    const reader=new FileReader();
+    reader.onload=function(e){
+      try{
+        const data=new Uint8Array(e.target.result);
+        const workbook=XLSX.read(data,{type:'array'});
+        const sheetName=workbook.SheetNames[0];
+        const sheet=workbook.Sheets[sheetName];
+        const rows=XLSX.utils.sheet_to_json(sheet,{header:1,defval:""});
+        processImportAwalRows(rows);
+      }catch(err){showToast("Gagal baca Excel: "+err.message,"error");}
+    };
+    reader.readAsArrayBuffer(file);
+  }
+}
+function processImportAwalCSV(csv){
+  const lines=csv.trim().split("\n");
+  const rows=lines.map(l=>{
+    const cols=[];let cur="",inQ=false;
+    for(const ch of l){
+      if(ch==='"'){inQ=!inQ;}
+      else if(ch===','&&!inQ){cols.push(cur.trim().replace(/^"|"$/g,""));cur="";}
+      else{cur+=ch;}
+    }
+    cols.push(cur.trim().replace(/^"|"$/g,""));
+    return cols;
+  });
+  processImportAwalRows(rows);
+}
+function processImportAwalRows(rows){
+  if(!rows||rows.length<2){showToast("File kosong atau tidak valid!","error");return;}
+  // Cari header row - cari baris yang ada "No. Pendaftaran" atau "Nama"
+  let headerIdx=-1;
+  let colNop=-1,colNama=-1,colPanggil=-1,colJK=-1,colSekolah=-1;
+  for(let i=0;i<Math.min(5,rows.length);i++){
+    const row=rows[i].map(c=>String(c).toLowerCase().trim());
+    const nopIdx=row.findIndex(c=>c.includes('pendaftaran')||c.includes('no.'));
+    const namaIdx=row.findIndex(c=>c.includes('nama calon')||c.includes('nama siswa')||c==='nama');
+    if(nopIdx>=0&&namaIdx>=0){
+      headerIdx=i;
+      colNop=nopIdx;
+      colNama=namaIdx;
+      // Cari kolom lain
+      colPanggil=row.findIndex(c=>c.includes('panggilan'));
+      colJK=row.findIndex(c=>c.includes('kelamin')||c==='jk'||c==='l/p');
+      colSekolah=row.findIndex(c=>c.includes('sekolah'));
+      break;
+    }
+  }
+  if(headerIdx<0){showToast("Format file tidak dikenali! Pastikan ada kolom No. Pendaftaran dan Nama.","error");return;}
+  // Ambil tahun dan tgl dari form jika ada
+  const tgl=gv("I-tgl")||"";
+  const tahun=gv("I-tahun")||"";
+  const status=gv("I-status")||"";
+  let imported=0, skipped=0;
+  for(let i=headerIdx+1;i<rows.length;i++){
+    const row=rows[i];
+    const nop=String(row[colNop]||"").trim();
+    if(!nop||nop==="0"||nop==="")continue;
+    // Cek apakah sudah ada
+    const exist=raw.findIndex(r=>String(r.noPendaftaran).trim()===nop&&r.type==="identitas");
+    if(exist>=0){skipped++;continue;}
+    // Normalisasi JK
+    let jk=colJK>=0?String(row[colJK]||"").trim():"";
+    if(jk.toLowerCase()==="l"||jk.toLowerCase()==="laki-laki"||jk.toLowerCase()==="laki")jk="Laki-Laki";
+    else if(jk.toLowerCase()==="p"||jk.toLowerCase()==="perempuan")jk="Perempuan";
+    const newRow={
+      noPendaftaran:nop,
+      nama:colNama>=0?String(row[colNama]||"").trim():"",
+      panggil:colPanggil>=0?String(row[colPanggil]||"").trim():"",
+      jk:jk,
+      tgl:tgl,
+      status:status,
+      sekolah:colSekolah>=0?String(row[colSekolah]||"").trim():"",
+      tahun:tahun,
+      inputIdBy:cu?cu.name:"",
+      type:"identitas"
+    };
+    raw.push(newRow);
+    imported++;
+  }
+  saveLocal();
+  let msg="✓ Import berhasil! "+imported+" siswa dimasukkan.";
+  if(skipped>0)msg+=" ("+skipped+" sudah ada, dilewati)";
+  showToast(msg,"success");
+  render();
+}
 async function saveId(){
   const nopend  = gv("I-nopend").trim();
   const tgl     = gv("I-tgl");
