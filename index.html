@@ -226,7 +226,8 @@ function bIdentitas(){
     </div>
     <div style="display:flex;justify-content:flex-end;margin-top:14px;padding-top:12px;border-top:1px solid #f1f5f9">
       <button id="B-saveId" class="bg_" ${saving?"disabled":""}>${saving?`<i class="ti ti-loader" style="animation:spin 1s linear infinite"></i>Menyimpan...`:`<i class="ti ti-device-floppy"></i>Simpan Identitas`}</button>
-    <button onclick="document.getElementById('I-import-file').click()" style="background:#fdf4ff;color:#7c3aed;border:1.5px solid #d8b4fe;border-radius:9px;padding:10px 18px;font-weight:700;font-size:13px;cursor:pointer;display:inline-flex;align-items:center;gap:7px;margin-left:8px"><i class="ti ti-file-import"></i>Import Data Awal (Excel)</button>
+    <div style="background:#fffbeb;border:1.5px solid #fcd34d;border-radius:8px;padding:8px 12px;margin-top:10px;font-size:12px;color:#92400e"><i class="ti ti-info-circle" style="margin-right:5px"></i><b>Sebelum Import:</b> Pastikan <b>Tanggal Test</b>, <b>Status</b>, dan <b>Tahun Ajaran</b> sudah diisi terlebih dahulu di form atas.</div>
+    <button onclick="document.getElementById('I-import-file').click()" style="background:#fdf4ff;color:#7c3aed;border:1.5px solid #d8b4fe;border-radius:9px;padding:10px 18px;font-weight:700;font-size:13px;cursor:pointer;display:inline-flex;align-items:center;gap:7px;margin-top:8px"><i class="ti ti-file-import"></i>Import Data Awal (Excel)</button>
     <input type="file" id="I-import-file" accept=".xlsx,.xls,.csv" style="display:none" onchange="doImportAwal(this)">
     </div>
   </div>`;}
