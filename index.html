@@ -869,32 +869,35 @@ function processImportAwalCSV(csv){
 }
 function processImportAwalRows(rows){
   if(!rows||rows.length<2){showToast("File kosong atau tidak valid!","error");return;}
-  // Cari header row - cari baris yang ada "No. Pendaftaran" atau "Nama"
+  // Cari header row - cari baris yang ada "No. Pendaftaran"
+  // Support baris header di mana saja (termasuk setelah baris judul)
   let headerIdx=-1;
-  let colNop=-1,colNama=-1,colPanggil=-1,colJK=-1,colSekolah=-1;
-  for(let i=0;i<Math.min(5,rows.length);i++){
-    const row=rows[i].map(c=>String(c).toLowerCase().trim());
-    const nopIdx=row.findIndex(c=>c.includes('pendaftaran')||c.includes('no.'));
-    const namaIdx=row.findIndex(c=>c.includes('nama calon')||c.includes('nama siswa')||c==='nama');
+  let colNop=-1,colNama=-1,colPanggil=-1,colJK=-1,colSekolah=-1,colTglLahir=-1,colKotaLahir=-1;
+  for(let i=0;i<Math.min(10,rows.length);i++){
+    if(!rows[i]||rows[i].every(c=>!c))continue;
+    const row=rows[i].map(c=>String(c||"").toLowerCase().trim());
+    const nopIdx=row.findIndex(c=>c.includes('pendaftaran'));
+    const namaIdx=row.findIndex(c=>c.includes('nama calon')||c.includes('nama siswa')||(c.includes('nama')&&!c.includes('panggil')));
     if(nopIdx>=0&&namaIdx>=0){
       headerIdx=i;
       colNop=nopIdx;
       colNama=namaIdx;
-      // Cari kolom lain
       colPanggil=row.findIndex(c=>c.includes('panggilan'));
       colJK=row.findIndex(c=>c.includes('kelamin')||c==='jk'||c==='l/p');
       colSekolah=row.findIndex(c=>c.includes('sekolah'));
+      colTglLahir=row.findIndex(c=>c.includes('tanggal lahir')||c.includes('tgl lahir')||c.includes('tgl. lahir'));
+      colKotaLahir=row.findIndex(c=>c.includes('kota lahir')||c.includes('tempat lahir'));
       break;
     }
   }
   if(headerIdx<0){showToast("Format file tidak dikenali! Pastikan ada kolom No. Pendaftaran dan Nama.","error");return;}
-  // Ambil tahun dan tgl dari form jika ada
   const tgl=gv("I-tgl")||"";
   const tahun=gv("I-tahun")||"";
   const status=gv("I-status")||"";
   let imported=0, skipped=0;
   for(let i=headerIdx+1;i<rows.length;i++){
     const row=rows[i];
+    if(!row||row.every(c=>!c))continue;
     const nop=String(row[colNop]||"").trim();
     if(!nop||nop==="0"||nop==="")continue;
     // Cek apakah sudah ada
@@ -904,11 +907,52 @@ function processImportAwalRows(rows){
     let jk=colJK>=0?String(row[colJK]||"").trim():"";
     if(jk.toLowerCase()==="l"||jk.toLowerCase()==="laki-laki"||jk.toLowerCase()==="laki")jk="Laki-Laki";
     else if(jk.toLowerCase()==="p"||jk.toLowerCase()==="perempuan")jk="Perempuan";
+    // Ambil tgl lahir - bisa berupa Date object atau string
+    let tgllahir="";
+    if(colTglLahir>=0&&row[colTglLahir]){
+      const rawTgl=row[colTglLahir];
+      if(typeof rawTgl==="string"&&rawTgl.trim()){
+        tgllahir=rawTgl.trim();
+      } else if(rawTgl instanceof Date||typeof rawTgl==="object"){
+        // Format dari SheetJS: Date object
+        try{
+          const d=new Date(rawTgl);
+          const y=d.getFullYear();
+          const m=String(d.getMonth()+1).padStart(2,"0");
+          const dd=String(d.getDate()).padStart(2,"0");
+          tgllahir=y+"-"+m+"-"+dd;
+        }catch(e){}
+      } else if(typeof rawTgl==="number"){
+        // Excel serial date
+        try{
+          const d=new Date(Math.round((rawTgl-25569)*86400*1000));
+          const y=d.getFullYear();
+          const m=String(d.getMonth()+1).padStart(2,"0");
+          const dd=String(d.getDate()).padStart(2,"0");
+          tgllahir=y+"-"+m+"-"+dd;
+        }catch(e){}
+      }
+    }
+    // Hitung usia otomatis jika ada tgl test dan tgl lahir
+    let usia="";
+    if(tgl&&tgllahir){
+      try{
+        const tTest=new Date(tgl);
+        const tLahir=new Date(tgllahir);
+        let th=tTest.getFullYear()-tLahir.getFullYear();
+        let bl=tTest.getMonth()-tLahir.getMonth();
+        if(tTest.getDate()<tLahir.getDate())bl--;
+        if(bl<0){th--;bl+=12;}
+        usia=th+" tahun "+bl+" bulan";
+      }catch(e){}
+    }
     const newRow={
       noPendaftaran:nop,
       nama:colNama>=0?String(row[colNama]||"").trim():"",
       panggil:colPanggil>=0?String(row[colPanggil]||"").trim():"",
       jk:jk,
+      tgllahir:tgllahir,
+      usia:usia,
       tgl:tgl,
       status:status,
       sekolah:colSekolah>=0?String(row[colSekolah]||"").trim():"",
@@ -1134,12 +1178,12 @@ async function exportXLSX(fl){
   /* Format HTML-XLS - dibuka Excel tanpa error */
   const tahunVal = modalTahun;
   const tglVal   = modalTgl ? `Tanggal Pelaksanaan: ${fmtTgl(modalTgl)}` : "";
-  const COLS = ["No. Pendaftaran","Nama Siswa","Nama Panggilan","JK","Tgl Test",
+  const COLS = ["No. Pendaftaran","Nama Siswa","Nama Panggilan","JK","Tgl Lahir","Usia","Tgl Test",
                 "Status","Sekolah Asal","Kap. Kecerdasan","Sk. Psiko","Rek.",
                 "B.Indo","Mat.","IPA","B.Ing","Rata\u00b2","Baca","Hafalan",
                 "Total Al Quran","Ket. Al Quran"];
   /* Lebar kolom dalam karakter (col width) */
-  const WIDTHS = [14, 24, 16, 5, 12, 10, 22, 18, 9, 7, 7, 7, 7, 7, 7, 7, 9, 14, 20];
+  const WIDTHS = [14, 24, 16, 5, 12, 16, 12, 10, 22, 18, 9, 7, 7, 7, 7, 7, 7, 7, 9, 14, 20];
 
   const esc = s => String(s==null?"":s)
     .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
@@ -1157,6 +1201,8 @@ async function exportXLSX(fl){
       p.nama||"",
       p.panggil||"",
       p.jk||"",
+      p.tgllahir||"",
+      p.usia||"",
       p.tgl ? new Date(p.tgl).toLocaleDateString("id-ID",{day:"2-digit",month:"2-digit",year:"numeric"}) : "",
       p.status||"",
       p.sekolah||"",
