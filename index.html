@@ -216,10 +216,12 @@ function bIdentitas(){
     ${nopW()}
     <div class="g2">
       <div class="fld"><label>No. Pendaftaran ${req}</label><input id="I-nopend" class="inp" placeholder="Contoh: 001"></div>
-      <div class="fld"><label>Tanggal Test ${req}</label><input id="I-tgl" class="inp" type="date"></div>
+      <div class="fld"><label>Tanggal Test ${req}</label><input id="I-tgl" class="inp" type="date" oninput="hitungUsia()"></div>
       <div class="fld"><label>Nama Lengkap ${req}</label><input id="I-nama" class="inp" placeholder="Nama lengkap sesuai akta"></div>
       <div class="fld"><label>Nama Panggilan ${req}</label><input id="I-panggil" class="inp" placeholder="Nama yang biasa dipanggil"></div>
       <div class="fld"><label>Jenis Kelamin ${req}</label><select id="I-jk" class="inp"><option value="">— Pilih —</option><option>Laki-Laki</option><option>Perempuan</option></select></div>
+      <div class="fld"><label>Tanggal Lahir</label><input type="date" id="I-tgllahir" class="inp" oninput="hitungUsia()"></div>
+      <div class="fld"><label>Usia (Otomatis)</label><input id="I-usia" class="inp" readonly placeholder="— isi tgl lahir —" style="background:#f1f5f9;color:#475569"></div>
       <div class="fld"><label>Status ${req}</label><select id="I-status" class="inp"><option value="">— Pilih Status —</option><option>Internal</option><option>Eksternal</option></select></div>
       <div class="fld"><label>Sekolah Asal ${req}</label><input id="I-sekolah" class="inp" placeholder="Nama SD/MI asal siswa"></div>
       <div class="fld"><label>Tahun Pelajaran ${req}</label><select id="I-tahun" class="inp">${TAHUN_OPT.map(t=>`<option>${t}</option>`).join("")}</select></div>
@@ -250,6 +252,8 @@ function bRekap(){
     <td style="padding:6px 8px;font-weight:700;color:#64748b;white-space:nowrap;font-size:12px">${p.noPendaftaran||"—"}</td>
     <td style="padding:6px 8px"><div style="font-weight:700;color:#111827;font-size:12px;white-space:nowrap">${p.nama||"—"}</div>${p.panggil?`<div style="font-size:10px;color:#94a3b8">"${p.panggil}"</div>`:""}</td>
     <td style="padding:6px 8px;font-size:11px;color:#374151;text-align:center">${dv(p.jk)==="Laki-Laki"?"L":dv(p.jk)==="Perempuan"?"P":dv(p.jk)}</td>
+    <td style="padding:6px 8px;text-align:center;font-size:11px">${dv(p.tgllahir)}</td>
+    <td style="padding:6px 8px;text-align:center;font-size:10px;color:#0891b2">${dv(p.usia)}</td>
     <td style="padding:6px 8px;text-align:center">${bdg(p.status)}</td>
     <td style="padding:6px 8px;font-size:11px;color:#374151;min-width:100px">${dv(p.sekolah)}</td>
     <td style="padding:6px 8px">${bdg(p.cfitHasil)}</td>
@@ -372,6 +376,8 @@ function bRekap(){
           <th rowspan="2" style="padding:7px 8px;text-align:left;font-size:10px;font-weight:700;color:#475569;border-bottom:2px solid #e2e8f0;border-right:1px solid #e2e8f0;text-transform:uppercase;white-space:nowrap">No. Daftar</th>
           <th rowspan="2" style="padding:7px 8px;text-align:left;font-size:10px;font-weight:700;color:#475569;border-bottom:2px solid #e2e8f0;border-right:1px solid #e2e8f0;text-transform:uppercase;white-space:nowrap">Nama Siswa</th>
           <th rowspan="2" style="padding:7px 8px;text-align:center;font-size:10px;font-weight:700;color:#475569;border-bottom:2px solid #e2e8f0;border-right:1px solid #e2e8f0;text-transform:uppercase">JK</th>
+          <th rowspan="2" style="padding:7px 8px;text-align:center;font-size:10px;font-weight:700;color:#475569;border-bottom:2px solid #e2e8f0;border-right:1px solid #e2e8f0;text-transform:uppercase">Tgl Lahir</th>
+          <th rowspan="2" style="padding:7px 8px;text-align:center;font-size:10px;font-weight:700;color:#475569;border-bottom:2px solid #e2e8f0;border-right:1px solid #e2e8f0;text-transform:uppercase">Usia</th>
           <th rowspan="2" style="padding:7px 8px;text-align:center;font-size:10px;font-weight:700;color:#475569;border-bottom:2px solid #e2e8f0;border-right:1px solid #e2e8f0;text-transform:uppercase">Status</th>
           <th rowspan="2" style="padding:7px 8px;text-align:left;font-size:10px;font-weight:700;color:#475569;border-bottom:2px solid #e2e8f0;border-right:1px solid #e2e8f0;text-transform:uppercase;min-width:100px">Sekolah Asal</th>
           <th colspan="3" style="padding:7px 8px;text-align:center;font-size:10px;font-weight:700;color:#0891b2;border-bottom:1px solid #e2e8f0;border-right:1px solid #e2e8f0;background:#ecfeff;text-transform:uppercase">Psikotest</th>
@@ -711,6 +717,8 @@ function doLoadFromSheets(){
         nama          : String(r["Nama Siswa"]||""),
         panggil       : String(r["Nama Panggilan"]||""),
         jk            : String(r["JK"]||""),
+        tgllahir      : String(r["Tgl Lahir"]||""),
+        usia          : String(r["Usia"]||""),
         tgl           : String(r["Tgl Test"]||""),
         status        : String(r["Status"]||""),
         sekolah       : String(r["Sekolah Asal"]||""),
@@ -917,6 +925,20 @@ function processImportAwalRows(rows){
   showToast(msg,"success");
   render();
 }
+function hitungUsia(){
+  const tgl=gv("I-tgl");
+  const lahir=gv("I-tgllahir");
+  if(!tgl||!lahir){sh("I-usia","");return;}
+  const tTest=new Date(tgl);
+  const tLahir=new Date(lahir);
+  if(isNaN(tTest)||isNaN(tLahir)){sh("I-usia","");return;}
+  let tahun=tTest.getFullYear()-tLahir.getFullYear();
+  let bulan=tTest.getMonth()-tLahir.getMonth();
+  if(tTest.getDate()<tLahir.getDate())bulan--;
+  if(bulan<0){tahun--;bulan+=12;}
+  const hasil=tahun+" tahun "+bulan+" bulan";
+  document.getElementById("I-usia").value=hasil;
+}
 async function saveId(){
   const nopend  = gv("I-nopend").trim();
   const tgl     = gv("I-tgl");
@@ -937,7 +959,9 @@ async function saveId(){
   if(!sekolah) { showToast("Sekolah Asal wajib diisi!","error"); return; }
 
   saving=true; render();
-  const row={noPendaftaran:nopend,nama,status,tahun,tgl,panggil,jk,sekolah,
+  const tgllahir=gv("I-tgllahir")||"";
+  const usia=document.getElementById("I-usia")?document.getElementById("I-usia").value||"":"";
+  const row={noPendaftaran:nopend,nama,status,tahun,tgl,panggil,jk,sekolah,tgllahir,usia,
              inputIdBy:cu.name,type:"identitas"};
   raw.push(row); saveLocal(); await sendGS(row);
   showToast(`✓ Identitas ${nama} (No.${nopend}) tersimpan!`,"success");
@@ -957,6 +981,8 @@ function doPrint(){
     {label:"Nama Siswa",      w:"90px"},
     {label:"Nama Panggilan",  w:"60px"},
     {label:"JK",              w:"22px"},
+    {label:"Tgl Lahir",       w:"60px"},
+    {label:"Usia",            w:"70px"},
     {label:"Tgl Test",        w:"60px"},
     {label:"Status",          w:"50px"},
     {label:"Sekolah Asal",    w:"80px"},
@@ -1007,6 +1033,8 @@ function doPrint(){
       <td style="${tdBase};font-weight:600">${p.nama||""}</td>
       <td style="${tdBase}">${p.panggil||""}</td>
       <td style="${tdBase};text-align:center">${p.jk==="Laki-Laki"?"L":p.jk==="Perempuan"?"P":p.jk||""}</td>
+      <td style="${tdBase};text-align:center;font-size:5.5pt">${p.tgllahir||""}</td>
+      <td style="${tdBase};text-align:center;font-size:5.5pt;color:#0891b2">${p.usia||""}</td>
       <td style="${tdBase};text-align:center">${tglStr}</td>
       <td style="${tdBase};text-align:center;${statusColor}">${p.status||""}</td>
       <td style="${tdBase}">${p.sekolah||""}</td>
@@ -1095,8 +1123,8 @@ function exportCSV(){
   if(isXlsx){exportXLSX(fl);}else{exportCSVonly(fl);}
 }
 function exportCSVonly(fl){
-  const h=["No. Pendaftaran","Nama Siswa","Nama Panggilan","JK","Tgl Test","Status","Sekolah Asal","Tahun","CFIT Raw","Kap. Kecerdasan","S2","S3","S5","S6","Logmat Total","Logmat Skala","Tintum Total","Tintum Label","Skala Kecerdasan","Emosi","Sosial","Adaptasi","Skala Pribadi","Skala Psiko","Rekomendasi","B.Indo Benar","Mat Benar","IPA Benar","B.Ing Benar","B.Indo Nilai","Mat Nilai","IPA Nilai","B.Ing Nilai","Rata Akademis","Nilai Baca","Nilai Hafalan","Total Quran","Ket Quran","Input ID By","Input Ps By","Input Ak By","Input Aq By"];
-  const rows=fl.map(p=>[p.noPendaftaran||"",p.nama||"",p.panggil||"",p.jk||"",p.tgl||"",p.status||"",p.sekolah||"",p.tahun||"",p.cfit||"",p.cfitHasil||"",p.s2||"",p.s3||"",p.s5||"",p.s6||"",p.logmatTotal||"",p.logmatSkala||"",p.tintumTotal||"",p.tintumLabel||"",p.skalaKecerdasan||"",p.emosi||"",p.sosial||"",p.adaptasi||"",p.skalaPribadi||"",p.skalaPsiko||"",p.rekomendasi||"",p.bindoBenar||"",p.matBenar||"",p.ipaBenar||"",p.bingBenar||"",p.bindoNilai||"",p.matNilai||"",p.ipaNilai||"",p.bingNilai||"",p.rataAkademis||"",p.nilaiBaca||"",p.nilaiHafalan||"",p.totalQuran||"",p.ketQuran||"",p.inputIdBy||"",p.inputPsBy||"",p.inputAkBy||"",p.inputAqBy||""]);
+  const h=["No. Pendaftaran","Nama Siswa","Nama Panggilan","JK","Tgl Lahir","Usia","Tgl Test","Status","Sekolah Asal","Tahun","CFIT Raw","Kap. Kecerdasan","S2","S3","S5","S6","Logmat Total","Logmat Skala","Tintum Total","Tintum Label","Skala Kecerdasan","Emosi","Sosial","Adaptasi","Skala Pribadi","Skala Psiko","Rekomendasi","B.Indo Benar","Mat Benar","IPA Benar","B.Ing Benar","B.Indo Nilai","Mat Nilai","IPA Nilai","B.Ing Nilai","Rata Akademis","Nilai Baca","Nilai Hafalan","Total Quran","Ket Quran","Input ID By","Input Ps By","Input Ak By","Input Aq By"];
+  const rows=fl.map(p=>[p.noPendaftaran||"",p.nama||"",p.panggil||"",p.jk||"",p.tgllahir||"",p.usia||"",p.tgl||"",p.status||"",p.sekolah||"",p.tahun||"",p.cfit||"",p.cfitHasil||"",p.s2||"",p.s3||"",p.s5||"",p.s6||"",p.logmatTotal||"",p.logmatSkala||"",p.tintumTotal||"",p.tintumLabel||"",p.skalaKecerdasan||"",p.emosi||"",p.sosial||"",p.adaptasi||"",p.skalaPribadi||"",p.skalaPsiko||"",p.rekomendasi||"",p.bindoBenar||"",p.matBenar||"",p.ipaBenar||"",p.bingBenar||"",p.bindoNilai||"",p.matNilai||"",p.ipaNilai||"",p.bingNilai||"",p.rataAkademis||"",p.nilaiBaca||"",p.nilaiHafalan||"",p.totalQuran||"",p.ketQuran||"",p.inputIdBy||"",p.inputPsBy||"",p.inputAkBy||"",p.inputAqBy||""]);
   const blank=Array(h.length).fill("");
   const allRows=[["REKAP SPMB SMP AL HIKMAH SURABAYA",...blank.slice(1)],[`Tahun Ajaran ${modalTahun}`,...blank.slice(1)],...(modalTgl?[[`Tanggal Pelaksanaan: ${fmtTgl(modalTgl)}`,...blank.slice(1)]]:[[]]),[],h,...rows];
   const csv="\uFEFF"+allRows.map(r=>r.map(v=>`"${String(v)}"`).join(",")).join("\n");
