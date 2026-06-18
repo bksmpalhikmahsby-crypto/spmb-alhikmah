@@ -1013,9 +1013,9 @@ async function saveId(){
   if(!status)  { showToast("Status wajib dipilih!","error"); return; }
   if(!sekolah) { showToast("Sekolah Asal wajib diisi!","error"); return; }
 
-  saving=true; render();
   const tgllahir=gv("I-tgllahir")||"";
   const usia=document.getElementById("I-usia")?document.getElementById("I-usia").value||"":"";
+  saving=true; render();
   const row={noPendaftaran:nopend,nama,status,tahun,tgl,panggil,jk,sekolah,tgllahir,usia,
              inputIdBy:cu.name,type:"identitas"};
   raw.push(row); saveLocal(); await sendGS(row);
