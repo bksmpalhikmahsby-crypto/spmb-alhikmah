@@ -165,10 +165,10 @@ function buildModal(){
   if(!showModal)return"";
   const isPrint=showModal==="print";
   return`<div class="modal-bg" id="modal-bg"><div class="modal-box">
-    <div style="font-size:15px;font-weight:800;color:#111827;margin-bottom:4px"><i class="ti ${isPrint?"ti-printer":"ti-file-spreadsheet"}" style="margin-right:7px;color:${isPrint?"#1a3c2e":"#059669"}"></i>${isPrint?"Cetak PDF Landscape":"Export CSV / Excel"}</div>
-    <div style="font-size:12px;color:#64748b;margin-bottom:16px">Isi judul untuk ${isPrint?"dokumen cetak":"file export"}</div>
+    <div style="font-size:15px;font-weight:800;color:#111827;margin-bottom:4px"><i class="ti ${isPrint?"ti-printer":showModal==="gsexcel"?"ti-cloud-download":"ti-file-spreadsheet"}" style="margin-right:7px;color:${isPrint?"#1a3c2e":showModal==="gsexcel"?"#7c3aed":"#059669"}"></i>${isPrint?"Cetak PDF Landscape":showModal==="gsexcel"?"Cetak Excel dari Google Sheets":"Export CSV / Excel"}</div>
+    <div style="font-size:12px;color:#64748b;margin-bottom:16px">${showModal==="gsexcel"?"Ambil semua data dari Google Sheets dan buat file Excel":"Isi judul untuk "+(isPrint?"dokumen cetak":"file export")}</div>
     <div style="display:flex;flex-direction:column;gap:12px">
-      ${!isPrint?`<div class="fld"><label>Format Export</label>
+      ${(!isPrint&&showModal!=="gsexcel")?`<div class="fld"><label>Format Export</label>
         <div style="display:flex;gap:8px">
           <label style="display:flex;align-items:center;gap:6px;cursor:pointer;flex:1;background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:8px;padding:8px 12px;font-size:13px;font-weight:600">
             <input type="radio" name="fmt" value="xlsx" id="M-fmt-xlsx" checked style="accent-color:#059669"> Excel (.xls)
@@ -193,7 +193,7 @@ function buildModal(){
     </div>
     <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:18px">
       <button id="M-cancel" class="bs" style="font-size:13px;padding:8px 16px">Batal</button>
-      <button id="M-ok" style="background:${isPrint?"#1a3c2e":"#059669"};color:${isPrint?"#c8a84b":"#fff"};border:none;border-radius:9px;padding:8px 20px;font-weight:700;font-size:13px;cursor:pointer;display:inline-flex;align-items:center;gap:6px"><i class="ti ${isPrint?"ti-printer":"ti-download"}"></i>${isPrint?"Cetak Sekarang":(document.querySelector('input[name="fmt"]:checked')?.value==="xlsx"?"Download Excel (.xls)":"Download CSV")}</button>
+      <button id="M-ok" style="background:${isPrint?"#1a3c2e":showModal==="gsexcel"?"#7c3aed":"#059669"};color:#fff;border:none;border-radius:9px;padding:8px 20px;font-weight:700;font-size:13px;cursor:pointer;display:inline-flex;align-items:center;gap:6px"><i class="ti ${isPrint?"ti-printer":"ti-download"}"></i>${isPrint?"Cetak Sekarang":(document.querySelector('input[name="fmt"]:checked')?.value==="xlsx"?"Download Excel (.xls)":"Download CSV")}</button>
     </div>
   </div></div>`;
 }
@@ -349,6 +349,7 @@ function bRekap(){
         <button id="B-reset" style="background:#fee2e2;color:#dc2626;border:1.5px solid #fca5a5;border-radius:9px;padding:7px 14px;font-weight:700;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:6px"><i class="ti ti-trash-x"></i>Reset Semua Data</button>
         <button id="B-sync" style="background:#f0fdf4;color:#059669;border:1.5px solid #6ee7b7;border-radius:9px;padding:7px 14px;font-weight:700;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:6px"><i class="ti ti-cloud-upload"></i>Sync ke Google Sheets</button>
         <button id="B-load" style="background:#eff6ff;color:#1a56db;border:1.5px solid #93c5fd;border-radius:9px;padding:7px 14px;font-weight:700;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:6px"><i class="ti ti-cloud-download"></i>Refresh dari Sheets</button>
+        <button id="B-gsexcel" style="background:#f5f3ff;color:#7c3aed;border:1.5px solid #c4b5fd;border-radius:9px;padding:7px 14px;font-weight:700;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:6px"><i class="ti ti-cloud-download"></i>Cetak Excel dari Sheets</button>
         <button id="B-import" style="background:#fdf4ff;color:#7c3aed;border:1.5px solid #d8b4fe;border-radius:9px;padding:7px 14px;font-weight:700;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:6px"><i class="ti ti-file-import"></i>Import Data</button>
         <input type="file" id="F-import" accept=".csv,.xls,.xlsx" style="display:none">
       </div>
@@ -586,6 +587,7 @@ function bindAll(){
     modalTahun=gv("M-tahun")||modalTahun;
     modalTgl=gv("M-tgl")||modalTgl;
     if(showModal==="print") doPrint();
+    else if(showModal==="gsexcel") doCetakExcelDariSheets();
     else exportCSV();
     showModal=false;render();
   };
@@ -596,6 +598,7 @@ function bindAll(){
   if($("B-reset"))$("B-reset").onclick=resetSemua;
   if($("B-sync"))$("B-sync").onclick=doSyncAll;
   if($("B-load"))$("B-load").onclick=doLoadFromSheets;
+  if($("B-gsexcel"))$("B-gsexcel").onclick=()=>{showModal="gsexcel";render()};
   if($("B-import"))$("B-import").onclick=()=>{$("F-import").click();};
   if($("F-import"))$("F-import").onchange=doImportData;
 }
@@ -696,6 +699,80 @@ function doImportData(){
     showToast("Gagal membaca file!","error");
   };
   reader.readAsText(file,"UTF-8");
+}
+function doCetakExcelDariSheets(){
+  showToast("Mengambil data dari Google Sheets...","info");
+  const SHEETDB_URL="https://sheetdb.io/api/v1/u2niwlkcs78yq";
+  fetch(SHEETDB_URL+"?sheet=SPMB_Data&limit=500")
+  .then(r=>{
+    if(!r.ok)throw new Error("HTTP "+r.status);
+    return r.json();
+  })
+  .then(rows=>{
+    if(!Array.isArray(rows)||rows.length===0){
+      showToast("Data di Google Sheets kosong.","warn");
+      return;
+    }
+    const dataGS=rows
+      .filter(r=>r["No. Pendaftaran"]&&String(r["No. Pendaftaran"]).trim()!=="")
+      .map(r=>({
+        noPendaftaran : String(r["No. Pendaftaran"]||""),
+        nama          : String(r["Nama Siswa"]||""),
+        panggil       : String(r["Nama Panggilan"]||""),
+        jk            : String(r["JK"]||""),
+        tgllahir      : String(r["Tgl Lahir"]||""),
+        usia          : String(r["Usia"]||""),
+        tgl           : String(r["Tgl Test"]||""),
+        status        : String(r["Status"]||""),
+        sekolah       : String(r["Sekolah Asal"]||""),
+        tahun         : String(r["Tahun"]||""),
+        cfit          : String(r["CFIT Raw"]||""),
+        cfitHasil     : String(r["Kap. Kecerdasan"]||""),
+        s2            : String(r["TINTUM S2"]||""),
+        s3            : String(r["TINTUM S3"]||""),
+        s5            : String(r["TINTUM S5"]||""),
+        s6            : String(r["TINTUM S6"]||""),
+        logmatTotal   : String(r["Logmat Total"]||""),
+        logmatSkala   : String(r["Logmat Skala"]||""),
+        tintumTotal   : String(r["Tintum Total"]||""),
+        tintumLabel   : String(r["Tintum Label"]||""),
+        skalaKecerdasan: String(r["Skala Kecerdasan"]||""),
+        emosi         : String(r["Emosi"]||""),
+        sosial        : String(r["Sosial"]||""),
+        adaptasi      : String(r["Adaptasi"]||""),
+        skalaPribadi  : String(r["Skala Pribadi"]||""),
+        skalaPsiko    : String(r["Skala Psikologi"]||""),
+        rekomendasi   : String(r["Rekomendasi"]||""),
+        bindoBenar    : String(r["B.Indo Benar"]||""),
+        matBenar      : String(r["Mat Benar"]||""),
+        ipaBenar      : String(r["IPA Benar"]||""),
+        bingBenar     : String(r["B.Ing Benar"]||""),
+        bindoNilai    : String(r["B.Indo Nilai"]||""),
+        matNilai      : String(r["Mat Nilai"]||""),
+        ipaNilai      : String(r["IPA Nilai"]||""),
+        bingNilai     : String(r["B.Ing Nilai"]||""),
+        rataAkademis  : String(r["Rata-rata Akademis"]||""),
+        nilaiBaca     : String(r["Nilai Baca"]||""),
+        nilaiHafalan  : String(r["Nilai Hafalan"]||""),
+        totalQuran    : String(r["Total Al Quran"]||""),
+        ketQuran      : String(r["Keterangan Al Quran"]||""),
+        inputIdBy     : String(r["Input Identitas Oleh"]||""),
+        inputPsBy     : String(r["Input Psiko Oleh"]||""),
+        inputAkBy     : String(r["Input Akademis Oleh"]||""),
+        inputAqBy     : String(r["Input AlQuran Oleh"]||""),
+        terakhirUpdate: String(r["Terakhir Update"]||"")
+      }));
+    if(dataGS.length===0){
+      showToast("Data di Google Sheets kosong.","warn");
+      return;
+    }
+    // Fungsi KHUSUS terpisah untuk export 45 kolom lengkap - tidak menyentuh exportXLSX asli
+    exportXLSXFull(dataGS);
+    showToast("✓ Excel lengkap berhasil dibuat dari "+dataGS.length+" data Google Sheets!","success");
+  })
+  .catch(e=>{
+    showToast("Gagal mengambil data dari Sheets: "+e.message,"error");
+  });
 }
 function doLoadFromSheets(){
   if(!confirm("Refresh data dari Google Sheets?\nData lokal akan diganti dengan data dari server."))return;
@@ -895,6 +972,7 @@ function processImportAwalRows(rows){
   const tahun=gv("I-tahun")||"";
   const status=gv("I-status")||"";
   let imported=0, skipped=0;
+  const importedRows=[];
   for(let i=headerIdx+1;i<rows.length;i++){
     const row=rows[i];
     if(!row||row.every(c=>!c))continue;
@@ -972,6 +1050,7 @@ function processImportAwalRows(rows){
       type:"identitas"
     };
     raw.push(newRow);
+    importedRows.push(newRow);
     imported++;
   }
   saveLocal();
@@ -979,6 +1058,21 @@ function processImportAwalRows(rows){
   if(skipped>0)msg+=" ("+skipped+" sudah ada, dilewati)";
   showToast(msg,"success");
   render();
+  if(importedRows.length>0){
+    syncImportAwalToSheets(importedRows);
+  }
+}
+async function syncImportAwalToSheets(rowsToSync){
+  showToast("Menyinkronkan "+rowsToSync.length+" siswa ke Google Sheets...","info");
+  let ok=0,fail=0;
+  for(const r of rowsToSync){
+    try{
+      await sendGS(r);
+      await new Promise(res=>setTimeout(res,300));
+      ok++;
+    }catch(e){fail++;}
+  }
+  showToast("✓ Sync ke Sheets selesai! "+ok+" siswa tersimpan"+(fail>0?" ("+fail+" gagal)":"")+".","success");
 }
 function hitungUsia(){
   const tgl=gv("I-tgl");
@@ -1289,6 +1383,123 @@ xmlns="http://www.w3.org/TR/REC-html40">
   a.download = `Rekap_SPMB_AlHikmah_${modalTahun.replace("/","_")}.xls`;
   a.click();
 }
+function exportXLSXFull(fl){
+  /* Fungsi KHUSUS untuk Cetak Excel dari Sheets - 45 kolom lengkap.
+     Terpisah dari exportXLSX() asli (dipakai tombol Export CSV/Excel) - TIDAK mengubahnya. */
+  const tahunVal = modalTahun;
+  const tglVal   = modalTgl ? `Tanggal Pelaksanaan: ${fmtTgl(modalTgl)}` : "";
+  const COLS = ["No. Pendaftaran","Nama Siswa","Nama Panggilan","JK","Tgl Lahir","Usia","Tgl Test","Status","Sekolah Asal","Tahun",
+                "CFIT Raw","Kap. Kecerdasan","TINTUM S2","TINTUM S3","TINTUM S5","TINTUM S6",
+                "Logmat Total","Logmat Skala","Tintum Total","Tintum Label","Skala Kecerdasan",
+                "Emosi","Sosial","Adaptasi","Skala Pribadi","Sk. Psiko","Rek.",
+                "B.Indo Benar","Mat Benar","IPA Benar","B.Ing Benar",
+                "B.Indo Nilai","Mat Nilai","IPA Nilai","B.Ing Nilai","Rata\u00b2 Akademis",
+                "Baca","Hafalan","Total Al Quran","Ket. Al Quran",
+                "Input Id.","Input Psi.","Input Akd.","Input AlQ.","Update Terakhir"];
+  const WIDTHS = [14,24,16,5,12,16,12,10,22,9,
+                  9,18,8,8,8,8,
+                  9,9,9,16,18,
+                  7,7,7,12,9,7,
+                  7,7,7,7,
+                  7,7,7,7,9,
+                  7,7,9,16,
+                  14,14,14,14,18];
+
+  const esc = s => String(s==null?"":s)
+    .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+
+  const hdrCells = COLS.map((c,i) =>
+    `<td width="${WIDTHS[i]*7}" style="background:#1A3C2E;color:#FFFFFF;font-weight:bold;font-size:8pt;text-align:center;vertical-align:middle;padding:4px 4px;border:1px solid #C8A84B;white-space:nowrap">${esc(c)}</td>`
+  ).join("");
+
+  const dataRows = fl.map((p,ri) => {
+    const bg = ri%2===0 ? "#FFFFFF" : "#F8FAFC";
+    const vals = [
+      p.noPendaftaran||"",
+      p.nama||"",
+      p.panggil||"",
+      p.jk||"",
+      p.tgllahir||"",
+      p.usia||"",
+      p.tgl ? new Date(p.tgl).toLocaleDateString("id-ID",{day:"2-digit",month:"2-digit",year:"numeric"}) : "",
+      p.status||"",
+      p.sekolah||"",
+      p.tahun||"",
+      p.cfit||"",
+      p.cfitHasil||"",
+      p.s2||"", p.s3||"", p.s5||"", p.s6||"",
+      p.logmatTotal||"", p.logmatSkala||"",
+      p.tintumTotal||"", p.tintumLabel||"",
+      p.skalaKecerdasan||"",
+      p.emosi||"", p.sosial||"", p.adaptasi||"",
+      p.skalaPribadi||"",
+      p.skalaPsiko||"",
+      p.rekomendasi||"",
+      p.bindoBenar||"", p.matBenar||"", p.ipaBenar||"", p.bingBenar||"",
+      p.bindoNilai||"", p.matNilai||"", p.ipaNilai||"", p.bingNilai||"",
+      p.rataAkademis||"",
+      p.nilaiBaca||"", p.nilaiHafalan||"", p.totalQuran||"",
+      p.ketQuran||"",
+      p.inputIdBy||"", p.inputPsBy||"", p.inputAkBy||"", p.inputAqBy||"",
+      p.terakhirUpdate||""
+    ];
+    const cells = vals.map((v,ci) => {
+      const isNum = (ci>=10&&ci<=27)||(ci===37);
+      const isNoP = ci === 0;
+      const numFmt = isNoP ? 'mso-number-format:"@"' : '';
+      return `<td style="background:${bg};${isNum?"text-align:center;":""}padding:3px 4px;border-bottom:1px solid #E2E8F0;font-size:8pt;vertical-align:middle;${numFmt}">${esc(v)}</td>`;
+    }).join("");
+    return `<tr>${cells}</tr>`;
+  }).join("");
+
+  const colGroup = WIDTHS.map(w => `<col width="${w*7}">`).join("");
+
+  const xls = `<html xmlns:o="urn:schemas-microsoft-com:office:office"
+xmlns:x="urn:schemas-microsoft-com:office:excel"
+xmlns="http://www.w3.org/TR/REC-html40">
+<head><meta charset="UTF-8">
+<!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets>
+<x:ExcelWorksheet><x:Name>Rekap SPMB Lengkap</x:Name>
+<x:WorksheetOptions><x:DisplayGridlines/><x:Print><x:FitWidth/><x:Landscape/></x:Print></x:WorksheetOptions>
+</x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]-->
+<style>
+  body{font-family:Calibri,Arial,sans-serif}
+  td{font-size:8pt;vertical-align:middle}
+  .title{font-size:14pt;font-weight:bold;color:#1A3C2E;text-align:center;vertical-align:middle;padding:6px}
+  .tahun{font-size:11pt;font-weight:bold;color:#C8A84B;text-align:center;vertical-align:middle;padding:4px}
+  .tgl{font-size:10pt;color:#555555;text-align:center;vertical-align:middle;padding:3px}
+</style></head>
+<body>
+<table border="0" cellspacing="0" cellpadding="0" style="border-collapse:collapse;width:100%">
+  <colgroup><col width="65">${colGroup}</colgroup>
+  <tr height="55">
+    <td rowspan="3" align="left" valign="middle" style="padding:4px;width:140px">
+      <img src="${LOGO_DATA}" width="130" height="auto" style="display:block;object-fit:contain">
+    </td>
+    <td colspan="${COLS.length}" class="title">SPMB SMP AL HIKMAH SURABAYA</td>
+  </tr>
+  <tr height="24">
+    <td colspan="${COLS.length}" class="tahun">Tahun Ajaran ${tahunVal}</td>
+  </tr>
+  <tr height="20">
+    <td colspan="${COLS.length}" class="tgl">${tglVal}</td>
+  </tr>
+  <tr height="8"><td colspan="${COLS.length+1}" style="border:none"></td></tr>
+  <tr height="26">
+    <td style="border:none;background:#1A3C2E"></td>
+    ${hdrCells}
+  </tr>
+  ${dataRows.replace(/<tr>/g,'<tr><td style="border:none"></td>')}
+</table>
+</body></html>`;
+
+  const blob = new Blob(["\uFEFF"+xls], {type:"application/vnd.ms-excel;charset=utf-8"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `Rekap_SPMB_AlHikmah_Lengkap_${modalTahun.replace("/","_")}.xls`;
+  a.click();
+}
+
 render();
 </script>
 </body>
