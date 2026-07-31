@@ -215,7 +215,11 @@ function bIdentitas(){
     </div>
     ${nopW()}
     <div class="g2">
-      <div class="fld"><label>No. Pendaftaran ${req}</label><input id="I-nopend" class="inp" placeholder="Contoh: 001"></div>
+      <div class="fld"><label>No. Pendaftaran ${req}</label>
+        <div style="display:flex;gap:6px;align-items:center">
+          <input id="I-nopend" class="inp" placeholder="Contoh: AH-2026-001" style="flex:1">
+          <button type="button" onclick="autoNopend()" style="background:#7c3aed;color:#fff;border:none;border-radius:8px;padding:6px 10px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap"><i class="ti ti-wand"></i> Auto</button>
+        </div></div>
       <div class="fld"><label>Tanggal Test ${req}</label><input id="I-tgl" class="inp" type="date" oninput="hitungUsia()"></div>
       <div class="fld"><label>Nama Lengkap ${req}</label><input id="I-nama" class="inp" placeholder="Nama lengkap sesuai akta"></div>
       <div class="fld"><label>Nama Panggilan ${req}</label><input id="I-panggil" class="inp" placeholder="Nama yang biasa dipanggil"></div>
@@ -346,9 +350,6 @@ function bRekap(){
       <div style="display:flex;gap:8px;flex-wrap:wrap">
         <button id="B-csv" class="bs" style="font-size:12px;padding:7px 12px"><i class="ti ti-file-spreadsheet"></i>Export CSV/Excel</button>
         <button id="B-print" style="background:#1a3c2e;color:#c8a84b;border:none;border-radius:9px;padding:7px 14px;font-weight:700;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:6px"><i class="ti ti-printer"></i>Cetak PDF Landscape</button>
-        <button id="B-reset" style="background:#fee2e2;color:#dc2626;border:1.5px solid #fca5a5;border-radius:9px;padding:7px 14px;font-weight:700;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:6px"><i class="ti ti-trash-x"></i>Reset Semua Data</button>
-        <button id="B-sync" style="background:#f0fdf4;color:#059669;border:1.5px solid #6ee7b7;border-radius:9px;padding:7px 14px;font-weight:700;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:6px"><i class="ti ti-cloud-upload"></i>Sync ke Google Sheets</button>
-        <button id="B-load" style="background:#eff6ff;color:#1a56db;border:1.5px solid #93c5fd;border-radius:9px;padding:7px 14px;font-weight:700;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:6px"><i class="ti ti-cloud-download"></i>Refresh dari Sheets</button>
         <button id="B-gsexcel" style="background:#f5f3ff;color:#7c3aed;border:1.5px solid #c4b5fd;border-radius:9px;padding:7px 14px;font-weight:700;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:6px"><i class="ti ti-cloud-download"></i>Cetak Excel dari Sheets</button>
         <button id="B-import" style="background:#fdf4ff;color:#7c3aed;border:1.5px solid #d8b4fe;border-radius:9px;padding:7px 14px;font-weight:700;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:6px"><i class="ti ti-file-import"></i>Import Data</button>
         <input type="file" id="F-import" accept=".csv,.xls,.xlsx" style="display:none">
@@ -595,9 +596,6 @@ function bindAll(){
   /* inline edit handled by saveInlineId() */
   document.querySelectorAll(".B-det").forEach(b=>b.onclick=()=>{const k=b.dataset.key;od.add(k);render();setTimeout(()=>{const d=document.querySelector(`.DT[data-key="${k}"]`);if(d)d.scrollIntoView({behavior:"smooth",block:"start"})},100)});
   document.querySelectorAll(".B-del").forEach(b=>b.onclick=e=>{e.stopPropagation();deleteSiswa(b.dataset.key);});
-  if($("B-reset"))$("B-reset").onclick=resetSemua;
-  if($("B-sync"))$("B-sync").onclick=doSyncAll;
-  if($("B-load"))$("B-load").onclick=doLoadFromSheets;
   if($("B-gsexcel"))$("B-gsexcel").onclick=()=>{showModal="gsexcel";render()};
   if($("B-import"))$("B-import").onclick=()=>{$("F-import").click();};
   if($("F-import"))$("F-import").onchange=doImportData;
@@ -1074,6 +1072,25 @@ async function syncImportAwalToSheets(rowsToSync){
   }
   showToast("✓ Sync ke Sheets selesai! "+ok+" siswa tersimpan"+(fail>0?" ("+fail+" gagal)":"")+".","success");
 }
+function autoNopend(){
+  // Ambil tahun dari field Tanggal Test, fallback ke tahun sekarang
+  const tgl=gv("I-tgl");
+  const tahun=tgl?new Date(tgl).getFullYear():new Date().getFullYear();
+  // Cari No. Pendaftaran terakhir dengan format AH-YYYY-NNN di data yang ada
+  const prefix="AH-"+tahun+"-";
+  let maxNum=0;
+  raw.forEach(r=>{
+    const nop=String(r.noPendaftaran||"").trim();
+    if(nop.startsWith(prefix)){
+      const num=parseInt(nop.replace(prefix,""))||0;
+      if(num>maxNum)maxNum=num;
+    }
+  });
+  const next=String(maxNum+1).padStart(3,"0");
+  const generated=prefix+next;
+  document.getElementById("I-nopend").value=generated;
+  showToast("No. Pendaftaran otomatis: "+generated,"success");
+}
 function hitungUsia(){
   const tgl=gv("I-tgl");
   const lahir=gv("I-tgllahir");
@@ -1471,25 +1488,21 @@ xmlns="http://www.w3.org/TR/REC-html40">
 </style></head>
 <body>
 <table border="0" cellspacing="0" cellpadding="0" style="border-collapse:collapse;width:100%">
-  <colgroup><col width="65">${colGroup}</colgroup>
-  <tr height="55">
-    <td rowspan="3" align="left" valign="middle" style="padding:4px;width:140px">
-      <img src="${LOGO_DATA}" width="130" height="auto" style="display:block;object-fit:contain">
-    </td>
-    <td colspan="${COLS.length}" class="title">SPMB SMP AL HIKMAH SURABAYA</td>
+  <colgroup>${colGroup}</colgroup>
+  <tr height="40">
+    <td colspan="${COLS.length}" style="background:#1A3C2E;color:#FFFFFF;font-size:15pt;font-weight:bold;text-align:center;vertical-align:middle;padding:8px;letter-spacing:1px">SPMB SMP AL HIKMAH SURABAYA</td>
   </tr>
-  <tr height="24">
-    <td colspan="${COLS.length}" class="tahun">Tahun Ajaran ${tahunVal}</td>
+  <tr height="22">
+    <td colspan="${COLS.length}" style="background:#1A3C2E;color:#C8A84B;font-size:11pt;font-weight:bold;text-align:center;vertical-align:middle;padding:4px">Tahun Ajaran ${tahunVal}</td>
   </tr>
-  <tr height="20">
-    <td colspan="${COLS.length}" class="tgl">${tglVal}</td>
+  <tr height="18">
+    <td colspan="${COLS.length}" style="background:#1A3C2E;color:#CCCCCC;font-size:9pt;text-align:center;vertical-align:middle;padding:3px">${tglVal}</td>
   </tr>
-  <tr height="8"><td colspan="${COLS.length+1}" style="border:none"></td></tr>
+  <tr height="6"><td colspan="${COLS.length}" style="border:none;background:#ffffff"></td></tr>
   <tr height="26">
-    <td style="border:none;background:#1A3C2E"></td>
     ${hdrCells}
   </tr>
-  ${dataRows.replace(/<tr>/g,'<tr><td style="border:none"></td>')}
+  ${dataRows}
 </table>
 </body></html>`;
 
