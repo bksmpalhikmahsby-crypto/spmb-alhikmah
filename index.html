@@ -91,6 +91,8 @@ const USERS={
 const TAHUN_OPT=["2024/2025","2025/2026","2026/2027","2027/2028","2028/2029"];
 let cu=null,lr=null,ln="",le="",pwShow=false,saving=false,toast=null;
 let raw=JSON.parse(localStorage.getItem("spmb_v17")||"[]");
+let gsViewData=null; // Data hasil "Tampil Hasil" dari Google Sheets (read-only, tidak disimpan ke localStorage)
+let gsLoading=false;
 let sq="",sb="nopend",od=new Set(),editKey=null;
 let showModal=false,modalTahun="2025/2026",modalTgl="";
 
@@ -245,7 +247,7 @@ function bAkademis(){return`<div class="card fade">${secH("ti-book-2","Input Nil
 function bAlQuran(){return`<div class="card fade">${secH("ti-star","Input Nilai Al Quran","#d97706")}${infoB(cu.name,"alquran")}${nopW()}<div class="g2"><div class="fld full"><label>No. Pendaftaran <span style="color:#dc2626">*</span></label><input id="Q-nopend" class="inp" placeholder="Ketik atau pilih dari daftar" list="Q-nopend-list" oninput="onNopendChange('Q')"><datalist id="Q-nopend-list">${buildDatalist("Q")}</datalist><div id="Q-nama-info"></div></div><div class="fld"><label>Nilai Baca / Tartil (0–100)</label><input id="Q-baca" class="inp" type="number" min="0" max="100" placeholder="0–100"></div><div class="fld"><label>Nilai Hafalan (0–100)</label><input id="Q-hafalan" class="inp" type="number" min="0" max="100" placeholder="0–100"></div><div class="fld full"><label>Total Nilai Al Quran (otomatis)</label><div class="rb" id="R-quran" style="min-height:46px"><span style="font-size:22px;font-weight:800;color:#d97706">—</span></div></div><div class="fld full"><label>Keterangan</label><textarea id="Q-ket" class="inp" rows="3" placeholder="Contoh: Jilid 3, lancar, hafal juz 30..." style="resize:vertical"></textarea></div></div><div style="display:flex;justify-content:flex-end;margin-top:14px;padding-top:12px;border-top:1px solid #f1f5f9"><button id="B-saveAq" class="bg_" ${saving?"disabled":""}>${saving?`<i class="ti ti-loader" style="animation:spin 1s linear infinite"></i>Menyimpan...`:`<i class="ti ti-device-floppy"></i>Simpan Al Quran`}</button></div></div>`;}
 
 function bRekap(){
-  const mg=getMerged(),fl=getFiltered(mg);
+  const mg=gsViewData||getMerged(),fl=getFiltered(mg);
   const ar=mg.filter(p=>p.rataAkademis&&p.rataAkademis!=="—").map(p=>+p.rataAkademis);
   const rataAll=ar.length?(ar.reduce((a,b)=>a+b,0)/ar.length).toFixed(1):"—";
   const internal=mg.filter(p=>p.status==="Internal").length;
@@ -348,7 +350,7 @@ function bRekap(){
     <div class="np" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px">
       <div><div style="font-size:17px;font-weight:800;color:#111827">Dashboard Rekap Admin</div><div style="font-size:11px;color:#64748b">Login: <b>${cu.name}</b> · ${mg.length} siswa · YA: ${ya} | TIDAK: ${tidak}</div></div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <button id="B-csv" class="bs" style="font-size:12px;padding:7px 12px"><i class="ti ti-file-spreadsheet"></i>Export CSV/Excel</button>
+        <button id="B-tampilhasil" class="bs" style="font-size:12px;padding:7px 12px"><i class="ti ti-eye"></i>Tampil Hasil</button>
         <button id="B-print" style="background:#1a3c2e;color:#c8a84b;border:none;border-radius:9px;padding:7px 14px;font-weight:700;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:6px"><i class="ti ti-printer"></i>Cetak PDF Landscape</button>
         <button id="B-gsexcel" style="background:#f5f3ff;color:#7c3aed;border:1.5px solid #c4b5fd;border-radius:9px;padding:7px 14px;font-weight:700;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:6px"><i class="ti ti-cloud-download"></i>Cetak Excel dari Sheets</button>
         <button id="B-gspdf" style="background:#ecfdf5;color:#047857;border:1.5px solid #6ee7b7;border-radius:9px;padding:7px 14px;font-weight:700;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:6px"><i class="ti ti-cloud-download"></i>Cetak PDF dari Sheets</button>
@@ -374,7 +376,7 @@ function bRekap(){
     </div>
     ${mg.length===0?`<div class="card" style="text-align:center;padding:36px 0;color:#94a3b8"><i class="ti ti-database-off" style="font-size:40px;display:block;margin-bottom:10px"></i><div style="font-size:13px;font-weight:600">Belum ada data siswa</div></div>`
     :`<div class="card" style="padding:10px;overflow:hidden">
-      <div style="font-size:11px;color:#64748b;margin-bottom:7px">Menampilkan <b>${fl.length}</b> dari <b>${mg.length}</b> siswa — <span style="color:#059669;font-weight:700">YA: ${ya}</span> · <span style="color:#dc2626;font-weight:700">TIDAK: ${tidak}</span></div>
+      <div style="font-size:11px;color:#64748b;margin-bottom:7px">Menampilkan <b>${fl.length}</b> dari <b>${mg.length}</b> siswa — <span style="color:#059669;font-weight:700">YA: ${ya}</span> · <span style="color:#dc2626;font-weight:700">TIDAK: ${tidak}</span>${gsViewData?` · <span style="color:#7c3aed;font-weight:700"><i class="ti ti-cloud-check"></i> Data dari Google Sheets</span>`:``}</div>
       <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:11px;min-width:1100px">
         <thead><tr style="background:#f8fafc">
           <th rowspan="2" style="padding:7px 8px;text-align:left;font-size:10px;font-weight:700;color:#475569;border-bottom:2px solid #e2e8f0;border-right:1px solid #e2e8f0;text-transform:uppercase;white-space:nowrap">No. Daftar</th>
@@ -581,7 +583,7 @@ function bindAll(){
   if($("B-search"))$("B-search").oninput=e=>{sq=e.target.value;render()};
   if($("B-sort"))$("B-sort").onchange=e=>{sb=e.target.value;render()};
   if($("B-print"))$("B-print").onclick=()=>{showModal="print";render()};
-  if($("B-csv"))$("B-csv").onclick=()=>{showModal="csv";render()};
+  if($("B-tampilhasil"))$("B-tampilhasil").onclick=doTampilHasil;
   if($("M-cancel"))$("M-cancel").onclick=()=>{showModal=false;render()};
   if($("modal-bg"))$("modal-bg").onclick=e=>{if(e.target===$("modal-bg")){showModal=false;render();}};
   if($("M-tahun"))$("M-tahun").oninput=e=>{modalTahun=e.target.value;if($("M-prev-tahun"))$("M-prev-tahun").textContent=`Tahun Ajaran ${modalTahun}`;};
@@ -710,6 +712,80 @@ function doImportData(){
     showToast("Gagal membaca file!","error");
   };
   reader.readAsText(file,"UTF-8");
+}
+function doTampilHasil(){
+  gsLoading=true;render();
+  showToast("Mengambil data dari Google Sheets...","info");
+  const SHEETDB_URL="https://sheetdb.io/api/v1/u2niwlkcs78yq";
+  fetch(SHEETDB_URL+"?sheet=SPMB_Data&limit=500")
+  .then(r=>{
+    if(!r.ok)throw new Error("HTTP "+r.status);
+    return r.json();
+  })
+  .then(rows=>{
+    gsLoading=false;
+    if(!Array.isArray(rows)){
+      showToast("Data tidak valid dari Google Sheets.","error");
+      render();
+      return;
+    }
+    gsViewData=rows
+      .filter(r=>r["No. Pendaftaran"]&&String(r["No. Pendaftaran"]).trim()!=="")
+      .map(r=>({
+        noPendaftaran : String(r["No. Pendaftaran"]||""),
+        nama          : String(r["Nama Siswa"]||""),
+        panggil       : String(r["Nama Panggilan"]||""),
+        jk            : String(r["JK"]||""),
+        tgllahir      : String(r["Tgl Lahir"]||""),
+        usia          : String(r["Usia"]||""),
+        tgl           : String(r["Tgl Test"]||""),
+        status        : String(r["Status"]||""),
+        sekolah       : String(r["Sekolah Asal"]||""),
+        tahun         : String(r["Tahun"]||""),
+        cfit          : String(r["CFIT Raw"]||""),
+        cfitHasil     : String(r["Kap. Kecerdasan"]||""),
+        s2            : String(r["TINTUM S2"]||""),
+        s3            : String(r["TINTUM S3"]||""),
+        s5            : String(r["TINTUM S5"]||""),
+        s6            : String(r["TINTUM S6"]||""),
+        logmatTotal   : String(r["Logmat Total"]||""),
+        logmatSkala   : String(r["Logmat Skala"]||""),
+        tintumTotal   : String(r["Tintum Total"]||""),
+        tintumLabel   : String(r["Tintum Label"]||""),
+        skalaKecerdasan: String(r["Skala Kecerdasan"]||""),
+        emosi         : String(r["Emosi"]||""),
+        sosial        : String(r["Sosial"]||""),
+        adaptasi      : String(r["Adaptasi"]||""),
+        skalaPribadi  : String(r["Skala Pribadi"]||""),
+        skalaPsiko    : String(r["Skala Psikologi"]||""),
+        rekomendasi   : String(r["Rekomendasi"]||""),
+        bindoBenar    : String(r["B.Indo Benar"]||""),
+        matBenar      : String(r["Mat Benar"]||""),
+        ipaBenar      : String(r["IPA Benar"]||""),
+        bingBenar     : String(r["B.Ing Benar"]||""),
+        bindoNilai    : String(r["B.Indo Nilai"]||""),
+        matNilai      : String(r["Mat Nilai"]||""),
+        ipaNilai      : String(r["IPA Nilai"]||""),
+        bingNilai     : String(r["B.Ing Nilai"]||""),
+        rataAkademis  : String(r["Rata-rata Akademis"]||""),
+        nilaiBaca     : String(r["Nilai Baca"]||""),
+        nilaiHafalan  : String(r["Nilai Hafalan"]||""),
+        totalQuran    : String(r["Total Al Quran"]||""),
+        ketQuran      : String(r["Keterangan Al Quran"]||""),
+        inputIdBy     : String(r["Input Identitas Oleh"]||""),
+        inputPsBy     : String(r["Input Psiko Oleh"]||""),
+        inputAkBy     : String(r["Input Akademis Oleh"]||""),
+        inputAqBy     : String(r["Input AlQuran Oleh"]||""),
+        terakhirUpdate: String(r["Terakhir Update"]||"")
+      }));
+    showToast("✓ "+gsViewData.length+" data dari Google Sheets ditampilkan!","success");
+    render();
+  })
+  .catch(e=>{
+    gsLoading=false;
+    showToast("Gagal mengambil data dari Sheets: "+e.message,"error");
+    render();
+  });
 }
 function doCekDuplikat(){
   showToast("Mengecek duplikat No. Pendaftaran dari Google Sheets...","info");
