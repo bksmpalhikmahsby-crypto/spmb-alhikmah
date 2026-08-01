@@ -165,10 +165,10 @@ function buildModal(){
   if(!showModal)return"";
   const isPrint=showModal==="print";
   return`<div class="modal-bg" id="modal-bg"><div class="modal-box">
-    <div style="font-size:15px;font-weight:800;color:#111827;margin-bottom:4px"><i class="ti ${isPrint?"ti-printer":showModal==="gsexcel"?"ti-cloud-download":"ti-file-spreadsheet"}" style="margin-right:7px;color:${isPrint?"#1a3c2e":showModal==="gsexcel"?"#7c3aed":"#059669"}"></i>${isPrint?"Cetak PDF Landscape":showModal==="gsexcel"?"Cetak Excel dari Google Sheets":"Export CSV / Excel"}</div>
-    <div style="font-size:12px;color:#64748b;margin-bottom:16px">${showModal==="gsexcel"?"Ambil semua data dari Google Sheets dan buat file Excel":"Isi judul untuk "+(isPrint?"dokumen cetak":"file export")}</div>
+    <div style="font-size:15px;font-weight:800;color:#111827;margin-bottom:4px"><i class="ti ${isPrint?"ti-printer":showModal==="gsexcel"||showModal==="gspdf"?"ti-cloud-download":"ti-file-spreadsheet"}" style="margin-right:7px;color:${isPrint?"#1a3c2e":showModal==="gsexcel"?"#7c3aed":showModal==="gspdf"?"#047857":"#059669"}"></i>${isPrint?"Cetak PDF Landscape":showModal==="gsexcel"?"Cetak Excel dari Google Sheets":showModal==="gspdf"?"Cetak PDF dari Google Sheets":"Export CSV / Excel"}</div>
+    <div style="font-size:12px;color:#64748b;margin-bottom:16px">${showModal==="gsexcel"||showModal==="gspdf"?"Ambil semua data dari Google Sheets dan buat dokumen":"Isi judul untuk "+(isPrint?"dokumen cetak":"file export")}</div>
     <div style="display:flex;flex-direction:column;gap:12px">
-      ${(!isPrint&&showModal!=="gsexcel")?`<div class="fld"><label>Format Export</label>
+      ${(!isPrint&&showModal!=="gsexcel"&&showModal!=="gspdf")?`<div class="fld"><label>Format Export</label>
         <div style="display:flex;gap:8px">
           <label style="display:flex;align-items:center;gap:6px;cursor:pointer;flex:1;background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:8px;padding:8px 12px;font-size:13px;font-weight:600">
             <input type="radio" name="fmt" value="xlsx" id="M-fmt-xlsx" checked style="accent-color:#059669"> Excel (.xls)
@@ -193,7 +193,7 @@ function buildModal(){
     </div>
     <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:18px">
       <button id="M-cancel" class="bs" style="font-size:13px;padding:8px 16px">Batal</button>
-      <button id="M-ok" style="background:${isPrint?"#1a3c2e":showModal==="gsexcel"?"#7c3aed":"#059669"};color:#fff;border:none;border-radius:9px;padding:8px 20px;font-weight:700;font-size:13px;cursor:pointer;display:inline-flex;align-items:center;gap:6px"><i class="ti ${isPrint?"ti-printer":"ti-download"}"></i>${isPrint?"Cetak Sekarang":(document.querySelector('input[name="fmt"]:checked')?.value==="xlsx"?"Download Excel (.xls)":"Download CSV")}</button>
+      <button id="M-ok" style="background:${isPrint?"#1a3c2e":showModal==="gsexcel"?"#7c3aed":showModal==="gspdf"?"#047857":"#059669"};color:#fff;border:none;border-radius:9px;padding:8px 20px;font-weight:700;font-size:13px;cursor:pointer;display:inline-flex;align-items:center;gap:6px"><i class="ti ${isPrint?"ti-printer":"ti-download"}"></i>${isPrint?"Cetak Sekarang":(document.querySelector('input[name="fmt"]:checked')?.value==="xlsx"?"Download Excel (.xls)":"Download CSV")}</button>
     </div>
   </div></div>`;
 }
@@ -351,7 +351,9 @@ function bRekap(){
         <button id="B-csv" class="bs" style="font-size:12px;padding:7px 12px"><i class="ti ti-file-spreadsheet"></i>Export CSV/Excel</button>
         <button id="B-print" style="background:#1a3c2e;color:#c8a84b;border:none;border-radius:9px;padding:7px 14px;font-weight:700;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:6px"><i class="ti ti-printer"></i>Cetak PDF Landscape</button>
         <button id="B-gsexcel" style="background:#f5f3ff;color:#7c3aed;border:1.5px solid #c4b5fd;border-radius:9px;padding:7px 14px;font-weight:700;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:6px"><i class="ti ti-cloud-download"></i>Cetak Excel dari Sheets</button>
+        <button id="B-gspdf" style="background:#ecfdf5;color:#047857;border:1.5px solid #6ee7b7;border-radius:9px;padding:7px 14px;font-weight:700;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:6px"><i class="ti ti-cloud-download"></i>Cetak PDF dari Sheets</button>
         <button id="B-import" style="background:#fdf4ff;color:#7c3aed;border:1.5px solid #d8b4fe;border-radius:9px;padding:7px 14px;font-weight:700;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:6px"><i class="ti ti-file-import"></i>Import Data</button>
+        <button id="B-dupcheck" style="background:#fff7ed;color:#c2410c;border:1.5px solid #fdba74;border-radius:9px;padding:7px 14px;font-weight:700;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:6px"><i class="ti ti-alert-triangle"></i>Cek Duplikat No. Daftar</button>
         <input type="file" id="F-import" accept=".csv,.xls,.xlsx" style="display:none">
       </div>
     </div>
@@ -589,6 +591,7 @@ function bindAll(){
     modalTgl=gv("M-tgl")||modalTgl;
     if(showModal==="print") doPrint();
     else if(showModal==="gsexcel") doCetakExcelDariSheets();
+    else if(showModal==="gspdf") doCetakPdfDariSheets();
     else exportCSV();
     showModal=false;render();
   };
@@ -597,8 +600,10 @@ function bindAll(){
   document.querySelectorAll(".B-det").forEach(b=>b.onclick=()=>{const k=b.dataset.key;od.add(k);render();setTimeout(()=>{const d=document.querySelector(`.DT[data-key="${k}"]`);if(d)d.scrollIntoView({behavior:"smooth",block:"start"})},100)});
   document.querySelectorAll(".B-del").forEach(b=>b.onclick=e=>{e.stopPropagation();deleteSiswa(b.dataset.key);});
   if($("B-gsexcel"))$("B-gsexcel").onclick=()=>{showModal="gsexcel";render()};
+  if($("B-gspdf"))$("B-gspdf").onclick=()=>{showModal="gspdf";render()};
   if($("B-import"))$("B-import").onclick=()=>{$("F-import").click();};
   if($("F-import"))$("F-import").onchange=doImportData;
+  if($("B-dupcheck"))$("B-dupcheck").onclick=doCekDuplikat;
 }
 
 function getIdentitasList(){
@@ -640,6 +645,12 @@ function doImportData(){
       const csv=e.target.result;
       const lines=csv.trim().split("\n");
       if(lines.length<=1){showToast("File kosong atau tidak valid!","error");return;}
+      // VALIDASI: pastikan file benar-benar file backup CSV aplikasi, bukan file lain
+      const headerLine=lines[0].toLowerCase();
+      if(!headerLine.includes("no. pendaftaran")||!headerLine.includes("nama siswa")){
+        showToast("File tidak dikenali! Pastikan ini adalah file backup CSV dari tombol 'Export CSV/Excel' (format CSV), bukan file Excel/PDF lain.","error");
+        return;
+      }
       // Skip header baris pertama
       let imported=0;
       for(let i=1;i<lines.length;i++){
@@ -655,6 +666,8 @@ function doImportData(){
         cols.push(cur.trim().replace(/^"|"$/g,""));
         const nop=String(cols[0]||"").trim();
         if(!nop||nop==="No. Pendaftaran"||nop==="0")continue;
+        // VALIDASI TAMBAHAN: tolak nilai yang mengandung karakter kode/HTML (bukan nomor pendaftaran wajar)
+        if(/[<>{}]|xmlns|mso-|font-family/i.test(nop)){continue;}
         // Cek apakah noPendaftaran sudah ada di raw
         const existIdx=raw.findIndex(r=>String(r.noPendaftaran).trim()===nop);
         const row={
@@ -697,6 +710,115 @@ function doImportData(){
     showToast("Gagal membaca file!","error");
   };
   reader.readAsText(file,"UTF-8");
+}
+function doCekDuplikat(){
+  showToast("Mengecek duplikat No. Pendaftaran dari Google Sheets...","info");
+  const SHEETDB_URL="https://sheetdb.io/api/v1/u2niwlkcs78yq";
+  fetch(SHEETDB_URL+"?sheet=SPMB_Data&limit=500")
+  .then(r=>{
+    if(!r.ok)throw new Error("HTTP "+r.status);
+    return r.json();
+  })
+  .then(rows=>{
+    if(!Array.isArray(rows)||rows.length===0){
+      showToast("Data di Google Sheets kosong.","warn");
+      return;
+    }
+    const groups={};
+    rows.forEach(r=>{
+      const nop=String(r["No. Pendaftaran"]||"").trim();
+      if(!nop)return;
+      if(!groups[nop])groups[nop]=[];
+      groups[nop].push(String(r["Nama Siswa"]||"(tanpa nama)").trim()||"(tanpa nama)");
+    });
+    const duplikat=Object.keys(groups).filter(nop=>groups[nop].length>1);
+    tampilkanHasilDuplikat(duplikat, groups);
+  })
+  .catch(e=>{
+    showToast("Gagal mengecek data: "+e.message,"error");
+  });
+}
+function tampilkanHasilDuplikat(duplikat, groups){
+  const existing=document.getElementById("dup-modal");
+  if(existing)existing.remove();
+  const overlay=document.createElement("div");
+  overlay.id="dup-modal";
+  overlay.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px";
+  let bodyHtml="";
+  if(duplikat.length===0){
+    bodyHtml=`<div style="text-align:center;padding:20px;color:#059669"><i class="ti ti-circle-check" style="font-size:40px"></i><div style="font-weight:700;margin-top:10px;font-size:15px">Tidak ada duplikat!</div><div style="font-size:12px;color:#64748b;margin-top:4px">Semua No. Pendaftaran unik.</div></div>`;
+  }else{
+    bodyHtml=`<div style="font-size:12px;color:#dc2626;font-weight:700;margin-bottom:10px">⚠ Ditemukan ${duplikat.length} No. Pendaftaran yang dipakai lebih dari 1 kali:</div>`;
+    duplikat.forEach(nop=>{
+      const names=groups[nop];
+      bodyHtml+=`<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:10px 12px;margin-bottom:8px">
+        <div style="font-weight:700;color:#111827;font-size:13px">No. Pendaftaran: ${nop} <span style="color:#dc2626">(${names.length}x dipakai)</span></div>
+        <div style="font-size:11px;color:#64748b;margin-top:4px">${names.map(n=>`• ${n}`).join("<br>")}</div>
+      </div>`;
+    });
+    bodyHtml+=`<div style="font-size:11px;color:#92400e;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:8px 10px;margin-top:8px">💡 Segera perbaiki No. Pendaftaran yang duplikat di Google Sheets atau saat input ulang, gunakan tombol <b>Auto</b> di form Identitas.</div>`;
+  }
+  overlay.innerHTML=`<div style="background:#fff;border-radius:14px;padding:20px;max-width:480px;width:100%;max-height:80vh;overflow-y:auto">
+    <div style="font-size:15px;font-weight:800;color:#111827;margin-bottom:12px"><i class="ti ti-alert-triangle" style="color:#c2410c;margin-right:6px"></i>Cek Duplikat No. Pendaftaran</div>
+    ${bodyHtml}
+    <div style="display:flex;justify-content:flex-end;margin-top:16px">
+      <button id="dup-close" style="background:#1a3c2e;color:#fff;border:none;border-radius:9px;padding:8px 18px;font-weight:700;font-size:13px;cursor:pointer">Tutup</button>
+    </div>
+  </div>`;
+  document.body.appendChild(overlay);
+  document.getElementById("dup-close").onclick=()=>overlay.remove();
+  overlay.onclick=(e)=>{if(e.target===overlay)overlay.remove();};
+}
+function doCetakPdfDariSheets(){
+  showToast("Mengambil data dari Google Sheets...","info");
+  const SHEETDB_URL="https://sheetdb.io/api/v1/u2niwlkcs78yq";
+  fetch(SHEETDB_URL+"?sheet=SPMB_Data&limit=500")
+  .then(r=>{
+    if(!r.ok)throw new Error("HTTP "+r.status);
+    return r.json();
+  })
+  .then(rows=>{
+    if(!Array.isArray(rows)||rows.length===0){
+      showToast("Data di Google Sheets kosong.","warn");
+      return;
+    }
+    const dataGS=rows
+      .filter(r=>r["No. Pendaftaran"]&&String(r["No. Pendaftaran"]).trim()!=="")
+      .map(r=>({
+        noPendaftaran : String(r["No. Pendaftaran"]||""),
+        nama          : String(r["Nama Siswa"]||""),
+        panggil       : String(r["Nama Panggilan"]||""),
+        jk            : String(r["JK"]||""),
+        tgllahir      : String(r["Tgl Lahir"]||""),
+        usia          : String(r["Usia"]||""),
+        tgl           : String(r["Tgl Test"]||""),
+        status        : String(r["Status"]||""),
+        sekolah       : String(r["Sekolah Asal"]||""),
+        tahun         : String(r["Tahun"]||""),
+        cfitHasil     : String(r["Kap. Kecerdasan"]||""),
+        skalaPsiko    : String(r["Skala Psikologi"]||""),
+        rekomendasi   : String(r["Rekomendasi"]||""),
+        bindoNilai    : String(r["B.Indo Nilai"]||""),
+        matNilai      : String(r["Mat Nilai"]||""),
+        ipaNilai      : String(r["IPA Nilai"]||""),
+        bingNilai     : String(r["B.Ing Nilai"]||""),
+        rataAkademis  : String(r["Rata-rata Akademis"]||""),
+        nilaiBaca     : String(r["Nilai Baca"]||""),
+        nilaiHafalan  : String(r["Nilai Hafalan"]||""),
+        totalQuran    : String(r["Total Al Quran"]||""),
+        ketQuran      : String(r["Keterangan Al Quran"]||"")
+      }));
+    if(dataGS.length===0){
+      showToast("Data di Google Sheets kosong.","warn");
+      return;
+    }
+    // Reuse doPrint() yang sudah ada, cukup pass data dari Sheets - tidak duplikasi logic PDF
+    doPrint(dataGS);
+    showToast("✓ PDF berhasil dibuat dari "+dataGS.length+" data Google Sheets!","success");
+  })
+  .catch(e=>{
+    showToast("Gagal mengambil data dari Sheets: "+e.message,"error");
+  });
 }
 function doCetakExcelDariSheets(){
   showToast("Mengambil data dari Google Sheets...","info");
@@ -1137,8 +1259,8 @@ async function saveId(){
 async function savePs(){const nopend=gv("P-nopend").trim();if(!nopend){showToast("No. Pendaftaran wajib diisi!","error");return;}const cfit=gv("P-cfit"),s2=gv("P-s2"),s3=gv("P-s3"),s5=gv("P-s5"),s6=gv("P-s6"),e=gv("P-emosi"),s=gv("P-sosial"),a=gv("P-adaptasi");const hasil=calcPs(cfit,s2,s3,s5,s6,e,s,a);saving=true;render();const row={noPendaftaran:nopend,type:"psikotest",inputPsBy:cu.name,cfit,s2,s3,s5,s6,emosi:e,sosial:s,adaptasi:a,...hasil};raw.push(row);saveLocal();await sendGS(row);showToast(`✓ Psikotest No.${nopend} tersimpan!`,"success");saving=false;render();}
 async function saveAk(){const nopend=gv("A-nopend").trim();if(!nopend){showToast("No. Pendaftaran wajib diisi!","error");return;}const bindo=gv("A-bindo"),mat=gv("A-mat"),ipa=gv("A-ipa"),bing=gv("A-bing");const hasil=calcAk(bindo,mat,ipa,bing);saving=true;render();const row={noPendaftaran:nopend,type:"akademis",inputAkBy:cu.name,bindoBenar:bindo,matBenar:mat,ipaBenar:ipa,bingBenar:bing,...hasil};raw.push(row);saveLocal();await sendGS(row);showToast(`✓ Akademis No.${nopend} tersimpan!`,"success");saving=false;render();}
 async function saveAq(){const nopend=gv("Q-nopend").trim();if(!nopend){showToast("No. Pendaftaran wajib diisi!","error");return;}const baca=gv("Q-baca"),hafalan=gv("Q-hafalan"),ket=gv("Q-ket"),total=F.qr(baca,hafalan);saving=true;render();const row={noPendaftaran:nopend,type:"alquran",inputAqBy:cu.name,nilaiBaca:baca,nilaiHafalan:hafalan,totalQuran:total,ketQuran:ket};raw.push(row);saveLocal();await sendGS(row);showToast(`✓ Al Quran No.${nopend} tersimpan!`,"success");saving=false;render();}
-function doPrint(){
-  const mg=getMerged(),fl=getFiltered(mg);
+function doPrint(customFl){
+  const fl=customFl||getFiltered(getMerged());
   const tahunVal=modalTahun;
   const tglVal=modalTgl?`Tanggal Pelaksanaan: ${fmtTgl(modalTgl)}`:"";
 
