@@ -351,11 +351,14 @@ function bRekap(){
       <div><div style="font-size:17px;font-weight:800;color:#111827">Dashboard Rekap Admin</div><div style="font-size:11px;color:#64748b">Login: <b>${cu.name}</b> · ${mg.length} siswa · YA: ${ya} | TIDAK: ${tidak}</div></div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
         <button id="B-tampilhasil" class="bs" style="font-size:12px;padding:7px 12px"><i class="ti ti-eye"></i>Tampil Hasil</button>
+        <button id="B-clearview" style="background:#fef2f2;color:#dc2626;border:1.5px solid #fca5a5;border-radius:9px;padding:7px 14px;font-weight:700;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:6px"><i class="ti ti-eraser"></i>Bersihkan Tampilan</button>
         <button id="B-print" style="background:#1a3c2e;color:#c8a84b;border:none;border-radius:9px;padding:7px 14px;font-weight:700;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:6px"><i class="ti ti-printer"></i>Cetak PDF Landscape</button>
         <button id="B-gsexcel" style="background:#f5f3ff;color:#7c3aed;border:1.5px solid #c4b5fd;border-radius:9px;padding:7px 14px;font-weight:700;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:6px"><i class="ti ti-cloud-download"></i>Cetak Excel dari Sheets</button>
         <button id="B-gspdf" style="background:#ecfdf5;color:#047857;border:1.5px solid #6ee7b7;border-radius:9px;padding:7px 14px;font-weight:700;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:6px"><i class="ti ti-cloud-download"></i>Cetak PDF dari Sheets</button>
         <button id="B-import" style="background:#fdf4ff;color:#7c3aed;border:1.5px solid #d8b4fe;border-radius:9px;padding:7px 14px;font-weight:700;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:6px"><i class="ti ti-file-import"></i>Import Data</button>
         <button id="B-dupcheck" style="background:#fff7ed;color:#c2410c;border:1.5px solid #fdba74;border-radius:9px;padding:7px 14px;font-weight:700;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:6px"><i class="ti ti-alert-triangle"></i>Cek Duplikat No. Daftar</button>
+        <button id="B-kelengkapan" style="background:#eff6ff;color:#1d4ed8;border:1.5px solid #93c5fd;border-radius:9px;padding:7px 14px;font-weight:700;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:6px"><i class="ti ti-checklist"></i>Cek Kelengkapan Data</button>
+        <button id="B-statistik" style="background:#f0fdfa;color:#0f766e;border:1.5px solid #5eead4;border-radius:9px;padding:7px 14px;font-weight:700;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:6px"><i class="ti ti-chart-bar"></i>Ringkasan Statistik</button>
         <input type="file" id="F-import" accept=".csv,.xls,.xlsx" style="display:none">
       </div>
     </div>
@@ -584,6 +587,7 @@ function bindAll(){
   if($("B-sort"))$("B-sort").onchange=e=>{sb=e.target.value;render()};
   if($("B-print"))$("B-print").onclick=()=>{showModal="print";render()};
   if($("B-tampilhasil"))$("B-tampilhasil").onclick=doTampilHasil;
+  if($("B-clearview"))$("B-clearview").onclick=doBersihkanTampilan;
   if($("M-cancel"))$("M-cancel").onclick=()=>{showModal=false;render()};
   if($("modal-bg"))$("modal-bg").onclick=e=>{if(e.target===$("modal-bg")){showModal=false;render();}};
   if($("M-tahun"))$("M-tahun").oninput=e=>{modalTahun=e.target.value;if($("M-prev-tahun"))$("M-prev-tahun").textContent=`Tahun Ajaran ${modalTahun}`;};
@@ -606,6 +610,8 @@ function bindAll(){
   if($("B-import"))$("B-import").onclick=()=>{$("F-import").click();};
   if($("F-import"))$("F-import").onchange=doImportData;
   if($("B-dupcheck"))$("B-dupcheck").onclick=doCekDuplikat;
+  if($("B-kelengkapan"))$("B-kelengkapan").onclick=doCekKelengkapan;
+  if($("B-statistik"))$("B-statistik").onclick=doRingkasanStatistik;
 }
 
 function getIdentitasList(){
@@ -713,6 +719,15 @@ function doImportData(){
   };
   reader.readAsText(file,"UTF-8");
 }
+function doBersihkanTampilan(){
+  if(!gsViewData){
+    showToast("Tidak ada tampilan hasil untuk dibersihkan.","warn");
+    return;
+  }
+  gsViewData=null;
+  showToast("✓ Tampilan dibersihkan. Data di Google Sheets tetap aman.","success");
+  render();
+}
 function doTampilHasil(){
   gsLoading=true;render();
   showToast("Mengambil data dari Google Sheets...","info");
@@ -786,6 +801,130 @@ function doTampilHasil(){
     showToast("Gagal mengambil data dari Sheets: "+e.message,"error");
     render();
   });
+}
+function fetchMappedSheetData(){
+  const SHEETDB_URL="https://sheetdb.io/api/v1/u2niwlkcs78yq";
+  return fetch(SHEETDB_URL+"?sheet=SPMB_Data&limit=500")
+    .then(r=>{
+      if(!r.ok)throw new Error("HTTP "+r.status);
+      return r.json();
+    })
+    .then(rows=>{
+      if(!Array.isArray(rows))throw new Error("Data tidak valid dari Google Sheets.");
+      return rows
+        .filter(r=>r["No. Pendaftaran"]&&String(r["No. Pendaftaran"]).trim()!=="")
+        .map(r=>({
+          noPendaftaran : String(r["No. Pendaftaran"]||""),
+          nama          : String(r["Nama Siswa"]||""),
+          status        : String(r["Status"]||""),
+          sekolah       : String(r["Sekolah Asal"]||""),
+          tahun         : String(r["Tahun"]||""),
+          cfitHasil     : String(r["Kap. Kecerdasan"]||""),
+          skalaPsiko    : String(r["Skala Psikologi"]||""),
+          rekomendasi   : String(r["Rekomendasi"]||""),
+          rataAkademis  : String(r["Rata-rata Akademis"]||""),
+          totalQuran    : String(r["Total Al Quran"]||"")
+        }));
+    });
+}
+function doCekKelengkapan(){
+  showToast("Mengecek kelengkapan data dari Google Sheets...","info");
+  fetchMappedSheetData().then(data=>{
+    if(data.length===0){showToast("Data di Google Sheets kosong.","warn");return;}
+    const belumLengkap=data.map(p=>{
+      const kurang=[];
+      if(!p.cfitHasil && !p.skalaPsiko) kurang.push("Psikotest");
+      if(!p.rataAkademis) kurang.push("Akademis");
+      if(!p.totalQuran) kurang.push("Al Quran");
+      return {...p, kurang};
+    }).filter(p=>p.kurang.length>0);
+    tampilkanHasilKelengkapan(belumLengkap, data.length);
+  }).catch(e=>{
+    showToast("Gagal mengecek data: "+e.message,"error");
+  });
+}
+function tampilkanHasilKelengkapan(belumLengkap, total){
+  const existing=document.getElementById("kelengkapan-modal");
+  if(existing)existing.remove();
+  const overlay=document.createElement("div");
+  overlay.id="kelengkapan-modal";
+  overlay.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px";
+  let bodyHtml="";
+  if(belumLengkap.length===0){
+    bodyHtml=`<div style="text-align:center;padding:20px;color:#059669"><i class="ti ti-circle-check" style="font-size:40px"></i><div style="font-weight:700;margin-top:10px;font-size:15px">Semua data lengkap!</div><div style="font-size:12px;color:#64748b;margin-top:4px">Semua ${total} siswa sudah memiliki nilai Psikotest, Akademis, dan Al Quran.</div></div>`;
+  }else{
+    bodyHtml=`<div style="font-size:12px;color:#1d4ed8;font-weight:700;margin-bottom:10px">📋 ${belumLengkap.length} dari ${total} siswa belum lengkap datanya:</div>`;
+    belumLengkap.forEach(p=>{
+      bodyHtml+=`<div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:10px 12px;margin-bottom:8px">
+        <div style="font-weight:700;color:#111827;font-size:13px">${p.noPendaftaran} — ${p.nama||"(tanpa nama)"}</div>
+        <div style="font-size:11px;color:#dc2626;margin-top:4px">Belum ada: ${p.kurang.map(k=>`<span style="background:#fee2e2;padding:2px 6px;border-radius:5px;margin-right:4px;display:inline-block;margin-top:2px">${k}</span>`).join("")}</div>
+      </div>`;
+    });
+  }
+  overlay.innerHTML=`<div style="background:#fff;border-radius:14px;padding:20px;max-width:480px;width:100%;max-height:80vh;overflow-y:auto">
+    <div style="font-size:15px;font-weight:800;color:#111827;margin-bottom:12px"><i class="ti ti-checklist" style="color:#1d4ed8;margin-right:6px"></i>Cek Kelengkapan Data</div>
+    ${bodyHtml}
+    <div style="display:flex;justify-content:flex-end;margin-top:16px">
+      <button id="kelengkapan-close" style="background:#1a3c2e;color:#fff;border:none;border-radius:9px;padding:8px 18px;font-weight:700;font-size:13px;cursor:pointer">Tutup</button>
+    </div>
+  </div>`;
+  document.body.appendChild(overlay);
+  document.getElementById("kelengkapan-close").onclick=()=>overlay.remove();
+  overlay.onclick=(e)=>{if(e.target===overlay)overlay.remove();};
+}
+function doRingkasanStatistik(){
+  showToast("Menghitung ringkasan statistik dari Google Sheets...","info");
+  fetchMappedSheetData().then(data=>{
+    if(data.length===0){showToast("Data di Google Sheets kosong.","warn");return;}
+    const total=data.length;
+    const internal=data.filter(p=>p.status==="Internal").length;
+    const eksternal=data.filter(p=>p.status==="Eksternal").length;
+    const ya=data.filter(p=>p.rekomendasi==="YA").length;
+    const tidak=data.filter(p=>p.rekomendasi==="TIDAK").length;
+    const belumRekom=total-ya-tidak;
+    const akademisArr=data.filter(p=>p.rataAkademis&&!isNaN(+p.rataAkademis)).map(p=>+p.rataAkademis);
+    const rataAkademis=akademisArr.length?(akademisArr.reduce((a,b)=>a+b,0)/akademisArr.length).toFixed(1):"—";
+    const psikoArr=data.filter(p=>p.skalaPsiko&&!isNaN(+p.skalaPsiko)).map(p=>+p.skalaPsiko);
+    const rataPsiko=psikoArr.length?(psikoArr.reduce((a,b)=>a+b,0)/psikoArr.length).toFixed(2):"—";
+    const sekolahCount={};
+    data.forEach(p=>{
+      const s=p.sekolah||"(tidak diketahui)";
+      sekolahCount[s]=(sekolahCount[s]||0)+1;
+    });
+    const topSekolah=Object.entries(sekolahCount).sort((a,b)=>b[1]-a[1]).slice(0,5);
+    tampilkanRingkasanStatistik({total,internal,eksternal,ya,tidak,belumRekom,rataAkademis,rataPsiko,topSekolah});
+  }).catch(e=>{
+    showToast("Gagal menghitung statistik: "+e.message,"error");
+  });
+}
+function tampilkanRingkasanStatistik(s){
+  const existing=document.getElementById("statistik-modal");
+  if(existing)existing.remove();
+  const overlay=document.createElement("div");
+  overlay.id="statistik-modal";
+  overlay.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px";
+  const cardStyle="background:#f0fdfa;border:1px solid #99f6e4;border-radius:10px;padding:12px;text-align:center";
+  const topSekolahHtml=s.topSekolah.map(([nama,jml])=>`<div style="display:flex;justify-content:space-between;font-size:12px;padding:5px 0;border-bottom:1px solid #f1f5f9"><span style="color:#374151">${nama}</span><span style="font-weight:700;color:#0f766e">${jml} siswa</span></div>`).join("");
+  overlay.innerHTML=`<div style="background:#fff;border-radius:14px;padding:20px;max-width:520px;width:100%;max-height:85vh;overflow-y:auto">
+    <div style="font-size:15px;font-weight:800;color:#111827;margin-bottom:14px"><i class="ti ti-chart-bar" style="color:#0f766e;margin-right:6px"></i>Ringkasan Statistik (dari Google Sheets)</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+      <div style="${cardStyle}"><div style="font-size:20px;font-weight:800;color:#0f766e">${s.total}</div><div style="font-size:11px;color:#64748b">Total Siswa</div></div>
+      <div style="${cardStyle}"><div style="font-size:20px;font-weight:800;color:#1a56db">${s.internal} / ${s.eksternal}</div><div style="font-size:11px;color:#64748b">Internal / Eksternal</div></div>
+      <div style="${cardStyle}"><div style="font-size:20px;font-weight:800;color:#059669">${s.ya}</div><div style="font-size:11px;color:#64748b">Rekomendasi YA</div></div>
+      <div style="${cardStyle}"><div style="font-size:20px;font-weight:800;color:#dc2626">${s.tidak}</div><div style="font-size:11px;color:#64748b">Rekomendasi TIDAK</div></div>
+      <div style="${cardStyle}"><div style="font-size:20px;font-weight:800;color:#7c3aed">${s.rataAkademis}</div><div style="font-size:11px;color:#64748b">Rata² Nilai Akademis</div></div>
+      <div style="${cardStyle}"><div style="font-size:20px;font-weight:800;color:#c2410c">${s.rataPsiko}</div><div style="font-size:11px;color:#64748b">Rata² Skala Psikologi</div></div>
+    </div>
+    ${s.belumRekom>0?`<div style="font-size:11px;color:#92400e;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:8px 10px;margin-bottom:14px">⚠ ${s.belumRekom} siswa belum ada rekomendasi (belum lengkap psikotest).</div>`:``}
+    <div style="font-size:13px;font-weight:700;color:#111827;margin-bottom:8px">🏫 Sekolah Asal Terbanyak</div>
+    <div>${topSekolahHtml}</div>
+    <div style="display:flex;justify-content:flex-end;margin-top:16px">
+      <button id="statistik-close" style="background:#1a3c2e;color:#fff;border:none;border-radius:9px;padding:8px 18px;font-weight:700;font-size:13px;cursor:pointer">Tutup</button>
+    </div>
+  </div>`;
+  document.body.appendChild(overlay);
+  document.getElementById("statistik-close").onclick=()=>overlay.remove();
+  overlay.onclick=(e)=>{if(e.target===overlay)overlay.remove();};
 }
 function doCekDuplikat(){
   showToast("Mengecek duplikat No. Pendaftaran dari Google Sheets...","info");
